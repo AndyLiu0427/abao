@@ -1,0 +1,444 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5F574160AE4D5783D2CD7935 /* AbaoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1EF82B74F3EFD26698D7819 /* AbaoApp.swift */; };
+		821CB422F95520D7A1647F64 /* AbaoAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54616252CB91777846AC704D /* AbaoAttributes.swift */; };
+		A4F2F8A9AE61CC92078F5717 /* AbaoLive.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8709B01523DD5B7FC5819E7D /* AbaoLive.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CFB858FC9CC7AEA42591D6D0 /* Guardian.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC77DF8D781209298110182 /* Guardian.swift */; };
+		EF1498EB68CED4DA43883AA5 /* AbaoLiveBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A39B13A4811EA24D1677B42 /* AbaoLiveBundle.swift */; };
+		EF1998B82719602F766A2AA1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D4FE02B380C2202EDCF32A73 /* Assets.xcassets */; };
+		F62CD3D13BAD11EE812D28DF /* AbaoAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54616252CB91777846AC704D /* AbaoAttributes.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C29016ACE0E27341A0F9CFF2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C649EFF61C10E32D3CF52772 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F599F7B11C4024B76AD1095A;
+			remoteInfo = AbaoLive;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F8B97565379B2A701051C781 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A4F2F8A9AE61CC92078F5717 /* AbaoLive.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		54616252CB91777846AC704D /* AbaoAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbaoAttributes.swift; sourceTree = "<group>"; };
+		565D8B9D5E9D5886B7086E8F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		8709B01523DD5B7FC5819E7D /* AbaoLive.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = AbaoLive.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		8A39B13A4811EA24D1677B42 /* AbaoLiveBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbaoLiveBundle.swift; sourceTree = "<group>"; };
+		912C9669BB5257E6F9F05E73 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9EF7454B6575EBB0CED8D4E7 /* Abao.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Abao.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BFC77DF8D781209298110182 /* Guardian.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Guardian.swift; sourceTree = "<group>"; };
+		D1EF82B74F3EFD26698D7819 /* AbaoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbaoApp.swift; sourceTree = "<group>"; };
+		D4FE02B380C2202EDCF32A73 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		2FF92C07839572FC8604CCC2 = {
+			isa = PBXGroup;
+			children = (
+				DD664B224AF1CFEF3E7CBC00 /* Abao */,
+				CD34720DB8A1DE66DE472491 /* AbaoLive */,
+				B7724588E6255410B1FA9B46 /* Shared */,
+				E5618EED50FA01E2C1304162 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B7724588E6255410B1FA9B46 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				54616252CB91777846AC704D /* AbaoAttributes.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		CD34720DB8A1DE66DE472491 /* AbaoLive */ = {
+			isa = PBXGroup;
+			children = (
+				8A39B13A4811EA24D1677B42 /* AbaoLiveBundle.swift */,
+				565D8B9D5E9D5886B7086E8F /* Info.plist */,
+			);
+			path = AbaoLive;
+			sourceTree = "<group>";
+		};
+		DD664B224AF1CFEF3E7CBC00 /* Abao */ = {
+			isa = PBXGroup;
+			children = (
+				D1EF82B74F3EFD26698D7819 /* AbaoApp.swift */,
+				D4FE02B380C2202EDCF32A73 /* Assets.xcassets */,
+				BFC77DF8D781209298110182 /* Guardian.swift */,
+				912C9669BB5257E6F9F05E73 /* Info.plist */,
+			);
+			path = Abao;
+			sourceTree = "<group>";
+		};
+		E5618EED50FA01E2C1304162 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9EF7454B6575EBB0CED8D4E7 /* Abao.app */,
+				8709B01523DD5B7FC5819E7D /* AbaoLive.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D41C37F738E4130D15BCEAD2 /* Abao */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 51372A775225CA5223784307 /* Build configuration list for PBXNativeTarget "Abao" */;
+			buildPhases = (
+				03DC7B1BF76EB18830E21993 /* Sources */,
+				E0BC1A6A0D5E7CE5CFE7E43B /* Resources */,
+				F8B97565379B2A701051C781 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				878309DCA2F07CFFE5197BF7 /* PBXTargetDependency */,
+			);
+			name = Abao;
+			packageProductDependencies = (
+			);
+			productName = Abao;
+			productReference = 9EF7454B6575EBB0CED8D4E7 /* Abao.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F599F7B11C4024B76AD1095A /* AbaoLive */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9F07F06C5B86BF2B4D43DF0D /* Build configuration list for PBXNativeTarget "AbaoLive" */;
+			buildPhases = (
+				16CB03B141370822431BBAC2 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AbaoLive;
+			packageProductDependencies = (
+			);
+			productName = AbaoLive;
+			productReference = 8709B01523DD5B7FC5819E7D /* AbaoLive.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C649EFF61C10E32D3CF52772 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					D41C37F738E4130D15BCEAD2 = {
+						ProvisioningStyle = Automatic;
+					};
+					F599F7B11C4024B76AD1095A = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 8EFC17DD7541B678383C3901 /* Build configuration list for PBXProject "Abao" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 2FF92C07839572FC8604CCC2;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E5618EED50FA01E2C1304162 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D41C37F738E4130D15BCEAD2 /* Abao */,
+				F599F7B11C4024B76AD1095A /* AbaoLive */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E0BC1A6A0D5E7CE5CFE7E43B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EF1998B82719602F766A2AA1 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		03DC7B1BF76EB18830E21993 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5F574160AE4D5783D2CD7935 /* AbaoApp.swift in Sources */,
+				821CB422F95520D7A1647F64 /* AbaoAttributes.swift in Sources */,
+				CFB858FC9CC7AEA42591D6D0 /* Guardian.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		16CB03B141370822431BBAC2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F62CD3D13BAD11EE812D28DF /* AbaoAttributes.swift in Sources */,
+				EF1498EB68CED4DA43883AA5 /* AbaoLiveBundle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		878309DCA2F07CFFE5197BF7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F599F7B11C4024B76AD1095A /* AbaoLive */;
+			targetProxy = C29016ACE0E27341A0F9CFF2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		47C677C635F143EDE39CB5D4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = AbaoLive/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.abao.ios.live;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		51B29C030F5FE2AC4DBAA85D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		86FC51D565FA467BE601EB96 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Abao/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.abao.ios;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D2A72617A331C243AA69443E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Abao/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.abao.ios;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D5F53CA69D3260CB9007D5A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = AbaoLive/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.abao.ios.live;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		E761A209A767587CF30D6980 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		51372A775225CA5223784307 /* Build configuration list for PBXNativeTarget "Abao" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				86FC51D565FA467BE601EB96 /* Debug */,
+				D2A72617A331C243AA69443E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8EFC17DD7541B678383C3901 /* Build configuration list for PBXProject "Abao" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E761A209A767587CF30D6980 /* Debug */,
+				51B29C030F5FE2AC4DBAA85D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9F07F06C5B86BF2B4D43DF0D /* Build configuration list for PBXNativeTarget "AbaoLive" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				47C677C635F143EDE39CB5D4 /* Debug */,
+				D5F53CA69D3260CB9007D5A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C649EFF61C10E32D3CF52772 /* Project object */;
+}
