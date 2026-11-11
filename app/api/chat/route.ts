@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     return Response.json({ messages: [userMessage, ...messages] });
   } catch (e) {
     console.error(e);
-    const messages = failSafeMessages();
+    const messages = failSafeMessages(family.lang);
     for (const m of messages) await pushChat(family.id, m);
     return Response.json({ messages: [userMessage, ...messages] });
   }

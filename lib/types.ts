@@ -1,5 +1,5 @@
 export type Member = { id: string; name: string; relation: string; phone?: string };
-export type Family = { id: string; elderName: string; members: Member[]; createdAt: number };
+export type Family = { id: string; elderName: string; members: Member[]; createdAt: number; lang?: "en" };
 
 export type Analysis = {
   is_likely_scam: boolean;

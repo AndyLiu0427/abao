@@ -6,17 +6,20 @@ export default function Demo() {
   const [ids, setIds] = useState<{ f: string; m: string } | null>(null);
   const [quiet, setQuiet] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [en, setEn] = useState(false);
 
   useEffect(() => {
     const q = new URLSearchParams(location.search);
     setQuiet(!!q.get("quiet"));
+    const isEn = q.get("lang") === "en";
+    setEn(isEn);
     const f = q.get("f");
     const m = q.get("m");
     if (f && m) return setIds({ f, m });
     (async () => {
      try {
-      const fam = await (await fetch("/api/family", { method: "POST", body: JSON.stringify({ elderName: "媽媽" }) })).json();
-      const { member } = await (await fetch(`/api/family/${fam.id}/join`, { method: "POST", body: JSON.stringify({ name: "小明", relation: "兒子" }) })).json();
+      const fam = await (await fetch("/api/family", { method: "POST", body: JSON.stringify(isEn ? { elderName: "Mom", lang: "en" } : { elderName: "媽媽" }) })).json();
+      const { member } = await (await fetch(`/api/family/${fam.id}/join`, { method: "POST", body: JSON.stringify(isEn ? { name: "Michael", relation: "son" } : { name: "小明", relation: "兒子" }) })).json();
       q.set("f", fam.id);
       q.set("m", member.id);
       history.replaceState(null, "", `/demo?${q}`);
@@ -46,18 +49,18 @@ export default function Demo() {
     <main className="flex h-dvh items-center justify-center gap-16 overflow-hidden bg-gradient-to-br from-orange-100 to-amber-50">
       {failed && (
         <button onClick={() => location.reload()} className="rounded-full bg-orange-500 px-6 py-3 text-xl font-bold text-white">
-          連線失敗，點這裡重試
+          {en ? "Could not connect. Tap to retry" : "連線失敗，點這裡重試"}
         </button>
       )}
       {ids && (
-        <a href={`/demo${quiet ? "?quiet=1" : ""}`} className="fixed right-3 top-3 rounded-full bg-white/80 px-3 py-1 text-sm text-stone-500 shadow">
-          ↻ 重新開始 New demo
+        <a href={`/demo?${en ? "lang=en" : ""}${quiet ? "&quiet=1" : ""}`} className="fixed right-3 top-3 rounded-full bg-white/80 px-3 py-1 text-sm text-stone-500 shadow">
+          {en ? "↻ New demo" : "↻ 重新開始 New demo"}
         </a>
       )}
       {ids && (
         <>
-          {phone("elder", `/?f=${ids.f}&n=${encodeURIComponent("媽媽")}${quiet ? "&quiet=1" : ""}`, "媽媽的手機", "Mom's phone")}
-          {phone("family", `/family?f=${ids.f}&m=${ids.m}`, "兒子小明的手機", "Her son's phone")}
+          {phone("elder", `/?f=${ids.f}&n=${encodeURIComponent(en ? "Mom" : "媽媽")}${quiet ? "&quiet=1" : ""}${en ? "&lang=en" : ""}`, en ? "Mom’s phone" : "媽媽的手機", en ? "Parent" : "Mom's phone")}
+          {phone("family", `/family?f=${ids.f}&m=${ids.m}`, en ? "Her son Michael’s phone" : "兒子小明的手機", en ? "Family member" : "Her son's phone")}
         </>
       )}
     </main>

@@ -16,14 +16,14 @@ export function save(key: string, value: unknown) {
   } catch {}
 }
 
-export function speak(text: string) {
+export function speak(text: string, lang = "zh-TW") {
   try {
     if (!("speechSynthesis" in window) || typeof text !== "string") return;
     // An empty call (from a tap) still speaks a blank utterance: that is what unlocks speech on iOS.
     const u = new SpeechSynthesisUtterance(text || " ");
-    u.lang = "zh-TW";
+    u.lang = lang;
     u.rate = 0.95;
-    const voice = speechSynthesis.getVoices().find((v) => v.lang.replace("_", "-").startsWith("zh-TW"));
+    const voice = speechSynthesis.getVoices().find((v) => v.lang.replace("_", "-").startsWith(lang));
     if (voice) u.voice = voice;
     speechSynthesis.speak(u);
   } catch {}

@@ -94,7 +94,13 @@ When it only comes up vaguely in conversation (a new friend, a teacher, an oppor
 
 Be transparent: always tell them you are going to check with family, and that they should not send money or reply until family answers. Never shame them; being targeted is not their fault. Never tell them to call a phone number, open a link, or add a LINE ID that appears inside a suspicious message.
 
-How to write: Traditional Chinese as used in Taiwan, short plain sentences a 70-year-old can follow when read aloud, one to three short lines, no markdown, no lists, no English. The app shows your verdict, red flags and phone numbers as cards, so do not repeat them; say what you are doing and the one thing they should do now. Only refer to a phone number "on the card" in a turn where you called get_official_contact; otherwise, if you mention 165 at all, just say they can call 165.`;
+How to write: Traditional Chinese as used in Taiwan, short plain sentences a 70-year-old can follow when read aloud, one to three short lines, no markdown, no lists, no English. The app shows your verdict, red flags and phone numbers as cards, so do not repeat them; say what you are doing and the one thing they should do now. Only refer to a phone number "on the card" in a turn where you called get_official_contact; otherwise, if you mention 165 at all, just say they can call 165.${
+    family.lang === "en"
+      ? `
+
+LANGUAGE AND COUNTRY OVERRIDE: this family lives in the United States and speaks English. Ignore the instructions above about Traditional Chinese and "no English": write everything to the parent in warm, plain English. Every tool field must also be in English, including verdict_zh, question_zh, message_summary and red_flags. Amounts are US dollars (put the number in amount_twd). Messaging apps are iMessage, WhatsApp, Facebook. Instead of 165 the number is the AARP Fraud Helpline 877-908-3360, and instead of 110 it is 911.`
+      : ""
+  }`;
 }
 
 type Ctx = { family: Family; thumb?: string; out: ChatMessage[]; checks: Map<string, Check> };
@@ -142,10 +148,11 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): 
     await saveCheck(check, true);
     ctx.checks.set(check.id, check);
     const risky = a.risk !== "low";
+    const en = ctx.family.lang === "en";
     await emit(ctx, {
       type: risky ? "warning" : "safe",
-      title: a.verdict_zh,
-      en: a.verdict_en,
+      title: en ? a.verdict_en || a.verdict_zh : a.verdict_zh,
+      en: en ? undefined : a.verdict_en,
       flags: risky ? (a.red_flags ?? []).slice(0, 4) : undefined,
     });
     return JSON.stringify({ check_id: check.id });
@@ -167,20 +174,25 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): 
     // The card goes out before the check becomes answerable, so the family's answer always lands after it.
     await emit(
       ctx,
-      headsUp
-        ? { type: "waiting", checkId: check.id, title: `正在通知${member.name}…`, body: "等家人回覆之前，先不要匯款。", en: `Bringing ${member.name} in. Don't send money yet.` }
-        : { type: "waiting", checkId: check.id, title: `正在問${member.name}本人…`, body: "回覆之前，先不要匯款。", en: `Asking the real ${member.name} now. Don't send money yet.` },
+      ctx.family.lang === "en"
+        ? headsUp
+          ? { type: "waiting", checkId: check.id, title: `Letting ${member.name} know…`, body: "Please don't send any money until they get back to you." }
+          : { type: "waiting", checkId: check.id, title: `Asking the real ${member.name}…`, body: "Please don't send any money until they answer." }
+        : headsUp
+          ? { type: "waiting", checkId: check.id, title: `正在通知${member.name}…`, body: "等家人回覆之前，先不要匯款。", en: `Bringing ${member.name} in. Don't send money yet.` }
+          : { type: "waiting", checkId: check.id, title: `正在問${member.name}本人…`, body: "回覆之前，先不要匯款。", en: `Asking the real ${member.name} now. Don't send money yet.` },
     );
     await saveCheck(check);
     await notifyMember(ctx.family.id, member.id, {
-      title: headsUp ? `阿寶：${ctx.family.elderName}可能遇到詐騙` : `阿寶：這是你嗎？`,
-      body: check.question || `${ctx.family.elderName}收到一則可疑訊息，請幫忙確認。`,
+      title: ctx.family.lang === "en" ? (headsUp ? `Abao: ${ctx.family.elderName} may be getting scammed` : "Abao: was this you?") : headsUp ? `阿寶：${ctx.family.elderName}可能遇到詐騙` : `阿寶：這是你嗎？`,
+      body: check.question || (ctx.family.lang === "en" ? `${ctx.family.elderName} got a suspicious message. Please confirm.` : `${ctx.family.elderName}收到一則可疑訊息，請幫忙確認。`),
       url: `/family?f=${ctx.family.id}&m=${member.id}`,
     });
     return `Question sent to ${member.name} (${member.relation}). The app will show their answer to the parent as soon as they tap.`;
   }
   if (name === "get_official_contact") {
-    await emit(ctx, officialCard());
+    await emit(ctx, ctx.family.lang === "en" ? officialCardEn() : officialCard());
+    if (ctx.family.lang === "en") return JSON.stringify({ aarp_fraud_helpline: "877-908-3360", police: "911", bank: "the number printed on the back of the parent's own card" });
     return JSON.stringify({ anti_fraud_hotline: "165", police: "110", bank: "the customer service number printed on the back of the parent's own card" });
   }
   if (name === "remember_fact") {
@@ -218,7 +230,21 @@ async function callModel(client: Anthropic, params: Omit<Anthropic.Beta.MessageC
   }
 }
 
-export const failSafeMessages = (): ChatMessage[] => [
+export const officialCardEn = (title = "Call the official number yourself", body = "Don't call the number in the message, and don't tap its links."): Card => ({
+  type: "official",
+  title,
+  body,
+  contacts: [{ label: "AARP Fraud Helpline 877-908-3360", tel: "8779083360" }, { label: "Police 911", tel: "911" }, { label: "Your bank: call the number on the back of your card" }],
+});
+
+export const failSafeMessages = (lang?: string): ChatMessage[] =>
+  lang === "en"
+    ? [
+        msg({ text: "I can't read this one clearly right now. Please don't send money or reply to them yet. Calling the fraud helpline is the safest thing to do." }),
+        msg({ card: officialCardEn("Hold the money. Call and ask first.") }),
+      ]
+    : failSafeZh();
+const failSafeZh = (): ChatMessage[] => [
   msg({ text: "阿寶現在看不清楚這則訊息。先不要匯款，也不要回覆對方，打 165 問一下最安全。" }),
   msg({ card: officialCard("先別匯款，撥 165 問問看") }),
 ];
@@ -270,7 +296,7 @@ export async function runAgent(opts: {
     }
   } catch (e) {
     console.error("agent error:", e);
-    finalText = ctx.out.length ? "先不要匯款，也不要回覆對方。有問題可以打 165。" : "";
+    finalText = !ctx.out.length ? "" : family.lang === "en" ? "Please don't send money or reply to them yet." : "先不要匯款，也不要回覆對方。有問題可以打 165。";
   }
 
   // Cards were already written as the tools ran; only the closing text (or the fail-safe) is written here.
@@ -280,14 +306,17 @@ export async function runAgent(opts: {
   const asked = [...ctx.checks.values()].filter((c) => c.askedMemberId);
   const answered = (await Promise.all(asked.map((c) => getCheck(c.id)))).some((c) => c && c.status !== "waiting");
   if (finalText && !answered) tail.push(msg({ text: finalText }));
-  if (!ctx.out.length && !tail.length) tail.push(...failSafeMessages());
+  if (!ctx.out.length && !tail.length) tail.push(...failSafeMessages(family.lang));
   for (const m of tail) await pushChat(family.id, m);
   return [...ctx.out, ...tail];
 }
 
 /** Proactive greeting when the parent opens the app and has not chatted yet today. */
 export async function greet(family: Family): Promise<ChatMessage | null> {
-  const fallback = `${family.elderName}好，我是阿寶。今天過得怎麼樣？收到奇怪的訊息，也可以拍給我看喔。`;
+  const fallback =
+    family.lang === "en"
+      ? `Hi ${family.elderName}, I'm Abao. How is your day going? If you ever get a strange message or call, just show it to me.`
+      : `${family.elderName}好，我是阿寶。今天過得怎麼樣？收到奇怪的訊息，也可以拍給我看喔。`;
   let text = fallback;
   if (!process.env.MOCK_AI) {
     try {

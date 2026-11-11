@@ -1,4 +1,4 @@
-import { getCheck, newId, pushChat, saveCheck } from "@/lib/store";
+import { getCheck, getFamily, newId, pushChat, saveCheck } from "@/lib/store";
 import type { ChatMessage } from "@/lib/types";
 
 // The family member's answer does not go through the model: it is written straight
@@ -12,8 +12,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (check.status !== "waiting") return Response.json(check);
 
   const name = check.askedName ?? "家人";
-  const card: ChatMessage["card"] =
-    answer === "will_call"
+  const en = (await getFamily(check.familyId))?.lang === "en";
+  const card: ChatMessage["card"] = en
+    ? answer === "will_call"
+      ? { type: "safe", title: `${name} is calling you right now ❤️`, body: "Hold the money and wait for the call." }
+      : answer === "not_me"
+        ? { type: "warning", title: `${name} says that was NOT them!`, body: "This is a scam. Do not send any money, and do not reply to them again.", call165: true }
+        : { type: "safe", title: `${name} confirmed it really was them`, body: "You're all set." }
+    : answer === "will_call"
       ? { type: "safe", title: `${name}說現在打給您 ❤️`, body: "先不要匯款，等他的電話。", en: `${name} is calling you now. Hold the money.` }
       : answer === "not_me"
         ? { type: "warning", title: `${name}說那不是本人！`, body: "這是詐騙。千萬不要匯款，也不要再回對方。", en: `${name} says it was NOT them. Do not send money.`, call165: true }

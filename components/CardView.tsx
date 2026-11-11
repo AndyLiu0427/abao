@@ -3,10 +3,10 @@ import type { Card } from "@/lib/types";
 const callBtn = "flex min-h-14 items-center justify-center rounded-2xl px-4 text-xl font-bold";
 
 export function cardSpeech(card: Card) {
-  return [card.title, card.body].filter(Boolean).join("。");
+  return [card.title, card.body].filter(Boolean).join(/[a-z]/i.test(card.title) ? ". " : "。");
 }
 
-export default function CardView({ card, done }: { card: Card; done?: boolean }) {
+export default function CardView({ card, done, en }: { card: Card; done?: boolean; en?: boolean }) {
   if (card.type === "warning")
     return (
       <div className={`${card.call165 ? "alarm pop" : "pop"} rounded-3xl bg-red-600 p-5 text-white shadow-lg`}>
@@ -21,8 +21,8 @@ export default function CardView({ card, done }: { card: Card; done?: boolean })
         )}
         {card.en && <div className="mt-3 text-sm opacity-80">{card.en}</div>}
         {card.call165 && (
-          <a href="tel:165" className={`${callBtn} mt-4 bg-white text-red-700`}>
-            📞 打 165 反詐騙專線
+          <a href={en ? "tel:8779083360" : "tel:165"} className={`${callBtn} mt-4 bg-white text-red-700`}>
+            {en ? "📞 Call the AARP Fraud Helpline" : "📞 打 165 反詐騙專線"}
           </a>
         )}
       </div>
@@ -40,7 +40,7 @@ export default function CardView({ card, done }: { card: Card; done?: boolean })
       <div className={`pop rounded-3xl border-2 border-amber-400 bg-amber-100 p-5 text-amber-950 shadow ${done ? "opacity-60" : ""}`}>
         <div className="flex items-center gap-3 text-2xl font-extrabold">
           {done ? <span>✔️</span> : <span className="inline-block h-7 w-7 spinner rounded-full border-4 border-amber-500 border-t-transparent" />}
-          {done ? card.title.replace("正在", "已").replace("…", "") : card.title}
+          {done ? card.title.replace("正在", "已").replace("Asking", "Asked").replace("Letting", "Let").replace("…", "") : card.title}
         </div>
         {card.body && <div className="mt-2 text-xl">{card.body}</div>}
         {card.en && <div className="mt-3 text-sm opacity-70">{card.en}</div>}
