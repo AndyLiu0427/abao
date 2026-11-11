@@ -6,9 +6,9 @@ import { type ElderId, type FamilyId, load, prepareImage, save, speak, stopSpeak
 import type { ChatMessage, Family } from "@/lib/types";
 
 const SAMPLES = [
+  { label: "「王老師要帶我買股票」", text: "LINE 上那個王老師說明天要帶我們買一支保證賺 30% 的股票，要先匯 10 萬。我是在群組認識他的，兩個禮拜了，沒見過面。" },
   { label: "「媽，我換號碼了」", text: "我剛剛收到這則 LINE：「媽，我是小明，我手機壞了換新號碼，這是我新的 LINE。我現在急需 5 萬塊周轉，下午就還妳，先不要跟爸說。」" },
   { label: "「地檢署通知」", text: "我收到簡訊：「臺北地檢署通知：您的帳戶涉及洗錢案，請立即撥打 02-2345-6789 配合調查，否則將凍結帳戶。」" },
-  { label: "「老師帶單」", text: "有人把我加進 LINE 群組，說「陳老師帶單，保證月報酬 30%，名額有限，先匯 10 萬入金」。" },
 ];
 
 type SR = { lang: string; interimResults: boolean; onresult: (e: { results: { 0: { transcript: string } }[] }) => void; onend: () => void; onerror: () => void; start: () => void; stop: () => void };
@@ -135,7 +135,14 @@ function Chat({ me }: { me: ElderId }) {
         if (stop) return;
         setFamily(data.family);
         merge(data.messages, loaded.current);
-        loaded.current = true;
+        if (!loaded.current) {
+          loaded.current = true;
+          // Abao speaks first when the parent opens the app and has not chatted yet today.
+          fetch("/api/chat/greet", { method: "POST", body: JSON.stringify({ familyId: me.familyId }) })
+            .then((r) => r.json())
+            .then((d) => d.message && merge([d.message], true))
+            .catch(() => {});
+        }
       } catch {}
     }
     poll();
@@ -245,27 +252,14 @@ function Chat({ me }: { me: ElderId }) {
       </header>
 
       <div className="flex-1 space-y-3 overflow-y-auto p-3">
-        <Bubble role="abao">
-          {me.name}您好，我是阿寶。收到奇怪的訊息或電話，先拍給我看，或直接跟我說。我會幫您問家人本人。
-        </Bubble>
         {members.length === 0 && (
           <button onClick={() => setShowInvite(true)} className="w-full rounded-3xl border-2 border-dashed border-orange-400 bg-white p-4 text-left text-xl font-bold text-orange-700">
             👨‍👩‍👧 先邀請一位家人，阿寶才能幫您問本人 →
           </button>
         )}
-        {messages.length === 0 && (
-          <div className="space-y-2 pt-1">
-            <div className="text-base text-stone-500">試試看 Try an example：</div>
-            {SAMPLES.map((s) => (
-              <button key={s.label} onClick={() => send({ text: s.text })} className="block w-full rounded-2xl bg-white p-3 text-left text-xl shadow-sm active:scale-[0.98]">
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
-        {messages.map((m) =>
+        {messages.map((m, i) =>
           m.card ? (
-            <CardView key={m.id} card={m.card} />
+            <CardView key={m.id} card={m.card} done={m.card.type === "waiting" && messages.slice(i + 1).some((x) => x.card && x.card.type !== "waiting")} />
           ) : (
             <Bubble key={m.id} role={m.role}>
               {m.imageUrl && (
@@ -275,6 +269,16 @@ function Chat({ me }: { me: ElderId }) {
               {m.text}
             </Bubble>
           ),
+        )}
+        {messages.filter((m) => m.role === "user").length === 0 && (
+          <div className="space-y-2 pt-1">
+            <div className="text-base text-stone-500">試試看 Try an example：</div>
+            {SAMPLES.map((s) => (
+              <button key={s.label} onClick={() => send({ text: s.text })} className="block w-full rounded-2xl bg-white p-3 text-left text-xl shadow-sm active:scale-[0.98]">
+                {s.label}
+              </button>
+            ))}
+          </div>
         )}
         {busy && (
           <Bubble role="abao">

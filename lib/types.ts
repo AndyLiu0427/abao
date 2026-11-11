@@ -14,7 +14,7 @@ export type Analysis = {
   message_summary: string;
 };
 
-export type CheckStatus = "done" | "waiting" | "confirmed_me" | "confirmed_not_me";
+export type CheckStatus = "done" | "waiting" | "confirmed_me" | "confirmed_not_me" | "family_calling";
 export type Check = {
   id: string;
   familyId: string;
@@ -25,6 +25,7 @@ export type Check = {
   askedMemberId?: string;
   askedName?: string;
   question?: string;
+  askKind?: "is_it_you" | "heads_up";
   answeredAt?: number;
 };
 

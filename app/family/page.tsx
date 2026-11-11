@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { type FamilyId, beep, load } from "@/lib/client";
 import type { Check, Family } from "@/lib/types";
 
-const STATUS: Record<string, string> = { done: "阿寶已提醒", waiting: "正在問其他家人", confirmed_me: "✅ 確認是本人", confirmed_not_me: "🚫 不是本人，已擋下" };
+const STATUS: Record<string, string> = { done: "阿寶已提醒", waiting: "正在問其他家人", confirmed_me: "✅ 確認是本人", confirmed_not_me: "🚫 不是本人，已擋下", family_calling: "📞 家人已打電話關心" };
 
 export default function FamilyPage() {
   const [me, setMe] = useState<{ familyId: string; memberId: string } | null>(null);
@@ -47,7 +47,7 @@ export default function FamilyPage() {
     };
   }, [me]);
 
-  async function respond(id: string, answer: "me" | "not_me") {
+  async function respond(id: string, answer: "me" | "not_me" | "will_call") {
     setAnswering(id);
     try {
       await fetch(`/api/checks/${id}/respond`, { method: "POST", body: JSON.stringify({ memberId: me?.memberId, answer }) });
@@ -99,14 +99,20 @@ export default function FamilyPage() {
               「{c.analysis.message_summary}」
               {c.analysis.amount_twd ? <div className="mt-1 font-bold text-red-600">要求金額：NT${c.analysis.amount_twd.toLocaleString()}</div> : null}
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button disabled={answering === c.id} onClick={() => respond(c.id, "me")} className="h-20 rounded-2xl bg-green-600 text-2xl font-extrabold text-white active:scale-95 disabled:opacity-50">
-                ✅ 是我
+            {c.askKind === "heads_up" ? (
+              <button disabled={answering === c.id} onClick={() => respond(c.id, "will_call")} className="mt-4 h-20 w-full rounded-2xl bg-orange-500 text-2xl font-extrabold text-white active:scale-95 disabled:opacity-50">
+                📞 我現在打給{elder}
               </button>
-              <button disabled={answering === c.id} onClick={() => respond(c.id, "not_me")} className="h-20 rounded-2xl bg-red-600 text-2xl font-extrabold text-white active:scale-95 disabled:opacity-50">
-                ❌ 不是我
-              </button>
-            </div>
+            ) : (
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <button disabled={answering === c.id} onClick={() => respond(c.id, "me")} className="h-20 rounded-2xl bg-green-600 text-2xl font-extrabold text-white active:scale-95 disabled:opacity-50">
+                  ✅ 是我
+                </button>
+                <button disabled={answering === c.id} onClick={() => respond(c.id, "not_me")} className="h-20 rounded-2xl bg-red-600 text-2xl font-extrabold text-white active:scale-95 disabled:opacity-50">
+                  ❌ 不是我
+                </button>
+              </div>
+            )}
           </div>
         ))}
 

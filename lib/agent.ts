@@ -34,15 +34,20 @@ const tools: Anthropic.Beta.BetaTool[] = [
   {
     name: "ask_family_member",
     description:
-      "Send a real family member a one-tap question (是我 / 不是我) to confirm whether a message really came from them. Use it right after record_check whenever the sender claims to be a relative or someone the family would know. The answer arrives later and the app shows it to the parent automatically, so do not wait for it.",
+      "Bring a real family member in before money moves. kind=is_it_you sends a one-tap question (是我 / 不是我) to confirm whether a message really came from them; use it when the sender claims to be a relative or someone the family knows. kind=heads_up tells a family member about a money risk that is not impersonation (an investment teacher, an online friend or romance asking for money) and gives them a one-tap 我現在打給她 button. Call it right after record_check. The answer arrives later and the app shows it automatically, so do not wait for it.",
     input_schema: {
       type: "object",
       properties: {
         check_id: { type: "string" },
+        kind: { type: "string", enum: ["is_it_you", "heads_up"] },
         member_id: { type: "string", description: "id of the family member to ask, from the family list" },
-        question_zh: { type: "string", description: "Short question shown to that family member in Traditional Chinese, e.g. 媽媽收到自稱是你的訊息，說換了號碼要借五萬，是你嗎？" },
+        question_zh: {
+          type: "string",
+          description:
+            "Short message shown to that family member in Traditional Chinese. is_it_you example: 媽媽收到自稱是你的訊息，說換了號碼要借五萬，是你嗎？ heads_up example: 媽媽說 LINE 群組的王老師要她先匯十萬投資，保證賺 30%，很像投資詐騙。",
+        },
       },
-      required: ["check_id", "member_id", "question_zh"],
+      required: ["check_id", "kind", "member_id", "question_zh"],
     },
   },
   {
@@ -63,9 +68,11 @@ const tools: Anthropic.Beta.BetaTool[] = [
 ];
 
 function systemPrompt(family: Family, memory: string[]) {
-  return `You are Abao (阿寶), a personal guardian agent that lives on the phone of ${family.elderName}, an older adult in Taiwan. You talk with them like a caring grandchild.
+  return `You are Abao (阿寶), a warm companion who lives on the phone of ${family.elderName}, an older adult in Taiwan, and chats with them every day like a caring grandchild. You are also their guardian: because you are the one they talk to, you are there at the moment a scam shows up.
 
-Why you exist: scammers win by pretending to be someone the parent trusts and by isolating them ("don't tell Dad", "this investigation is confidential"). Your job is to break that isolation before any money moves, by pulling the real person or the real institution into the conversation. Your own judgement about whether something is a scam is only the trigger; confirmation from a real person is what protects them.
+Companion: ask about their day, meals, health, TV shows, old stories. Be warm and a little playful. Remember what they tell you: whenever they mention a lasting fact about themselves or the family (people, health, routines, plans, someone new they met), call remember_fact, and use what you remember naturally in later chats.
+
+Why the guardian part matters: scammers win by pretending to be someone the parent trusts, by keeping a lonely person company, and by isolating them ("don't tell Dad", "this investigation is confidential"). Your job is to break that isolation before any money moves, by pulling a real family member or the real institution in. Your own judgement about whether something is a scam is only the trigger; a real person stepping in is what protects them.
 
 The family (these are the only people you can reach):
 ${JSON.stringify({ parent: family.elderName, members: family.members.map(({ id, name, relation }) => ({ id, name, relation })) })}
@@ -73,17 +80,20 @@ ${JSON.stringify({ parent: family.elderName, members: family.members.map(({ id, 
 Things you remember about this family:
 ${memory.length ? memory.map((m) => `- ${m}`).join("\n") : "(nothing yet)"}
 
-When the parent shows you a message, screenshot, or describes a call they are unsure about:
-1. Call record_check with your analysis. Read Traditional Chinese text in screenshots carefully. Common Taiwan patterns: a "child" who changed phone number or LINE and urgently needs money and asks for secrecy; police, prosecutors, banks or health insurance claiming the account is involved in money laundering and asking for a transfer to a "safe account"; investment "teachers" with guaranteed returns; fake buyers and romance scams.
-2. If the sender claims to be a relative or friend, call ask_family_member in the same turn as soon as you have the check_id. Pick the member they claim to be; if that person is not on the list, ask the closest family member to help verify. Then tell the parent you are asking that person right now and that they should not send money or reply until the answer comes back.
-3. If the sender claims to be police, prosecutors, a court, a bank or the government, call get_official_contact and tell the parent to hang up and call the official number themselves.
-4. If the family list is empty and the message is risky, call get_official_contact and suggest inviting a family member with the 邀請家人 button at the top.
-5. If the message is ordinary and safe, say so briefly and warmly.
+Stay alert while chatting. Signs of money risk: someone new from LINE or online (a "friend", "teacher", "boyfriend") asking for money, investment, gifts or secrecy; guaranteed returns, investment groups, crypto, stock tips; anyone claiming to be family, police, a prosecutor, a bank or the government asking for money or account details.
 
-Never tell the parent to call a phone number, open a link, or add a LINE ID that appears inside the suspicious message.
-For anything else (a question, a confusing screen, small talk), just help kindly. When they mention a lasting fact about themselves or the family, call remember_fact.
+When they show you a message or screenshot, or what they describe already makes the risk clear (who is asking, and that money is involved), act in that same turn:
+1. Call record_check with your analysis. Read Traditional Chinese text in screenshots carefully.
+2. If the sender claims to be a relative or friend, call ask_family_member with kind is_it_you as soon as you have the check_id. Pick the member they claim to be; if that person is not on the list, ask the closest family member to help verify.
+3. If it is an investment, romance or online-friend money request, call ask_family_member with kind heads_up so a family member can call them.
+4. If the sender claims to be police, prosecutors, a court, a bank or the government, call get_official_contact and tell them to hang up and call the official number themselves.
+5. If the family list is empty and there is risk, call get_official_contact and suggest inviting a family member with the ＋家人 button at the top.
+6. If the message is ordinary and safe, say so briefly and warmly.
+When it only comes up vaguely in conversation (a new friend, a teacher, an opportunity) and you cannot yet tell whether money is involved, ask one caring follow-up question first, then act once money is on the table.
 
-How to write: Traditional Chinese as used in Taiwan, short plain sentences a 70-year-old can follow when read aloud, at most three short lines, no markdown, no lists, no English. The app shows your verdict, red flags and phone numbers as cards, so do not repeat them in your reply; say what you are doing and the one thing they should do now.`;
+Be transparent: always tell them you are going to check with family, and that they should not send money or reply until family answers. Never shame them; being targeted is not their fault. Never tell them to call a phone number, open a link, or add a LINE ID that appears inside a suspicious message.
+
+How to write: Traditional Chinese as used in Taiwan, short plain sentences a 70-year-old can follow when read aloud, one to three short lines, no markdown, no lists, no English. The app shows your verdict, red flags and phone numbers as cards, so do not repeat them; say what you are doing and the one thing they should do now.`;
 }
 
 type Ctx = { family: Family; thumb?: string; out: ChatMessage[]; checks: Map<string, Check> };
@@ -136,10 +146,14 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): 
     check.askedMemberId = member.id;
     check.askedName = member.name;
     check.question = String(input.question_zh ?? "");
+    const headsUp = input.kind === "heads_up";
+    check.askKind = headsUp ? "heads_up" : "is_it_you";
     await saveCheck(check);
     ctx.out.push(
       msg({
-        card: { type: "waiting", checkId: check.id, title: `正在問${member.name}本人…`, body: "回覆之前，先不要匯款。", en: `Asking the real ${member.name} now. Don't send money yet.` },
+        card: headsUp
+          ? { type: "waiting", checkId: check.id, title: `正在通知${member.name}…`, body: "等家人回覆之前，先不要匯款。", en: `Bringing ${member.name} in. Don't send money yet.` }
+          : { type: "waiting", checkId: check.id, title: `正在問${member.name}本人…`, body: "回覆之前，先不要匯款。", en: `Asking the real ${member.name} now. Don't send money yet.` },
       }),
     );
     return `Question sent to ${member.name} (${member.relation}). The app will show their answer to the parent as soon as they tap.`;
@@ -249,6 +263,36 @@ export async function runAgent(opts: {
   return ordered;
 }
 
+/** Proactive greeting when the parent opens the app and has not chatted yet today. */
+export async function greet(family: Family): Promise<ChatMessage> {
+  const fallback = `${family.elderName}好，我是阿寶。今天過得怎麼樣？收到奇怪的訊息，也可以拍給我看喔。`;
+  let text = fallback;
+  if (!process.env.MOCK_AI) {
+    try {
+      const [history, memory] = await Promise.all([getChat(family.id), getMemory(family.id)]);
+      const hour = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "Asia/Taipei" }).format(new Date()));
+      const first = history.length === 0;
+      const res = await callModel(new Anthropic(), {
+        system: systemPrompt(family, memory),
+        messages: [
+          ...historyToMessages(history),
+          {
+            role: "user",
+            content: `[App event, not written by the parent: they just opened the app. Local time is about ${hour}:00. ${first ? "This is the very first time. Introduce yourself in one line, mention they can show you any strange message or call, and ask one small friendly question." : "Greet them warmly in one or two short lines and ask one small question about their day, using something you remember if it fits."} Do not call any tool.]`,
+          },
+        ],
+      });
+      const t = res.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text").map((b) => b.text).join("\n").trim();
+      if (res.stop_reason !== "refusal" && t) text = t;
+    } catch (e) {
+      console.error("greet error:", e);
+    }
+  }
+  const m = msg({ text });
+  await pushChat(family.id, m);
+  return m;
+}
+
 // Local development only (MOCK_AI=1): a scripted stand-in so the loop can be exercised without an API key.
 function mockModel(messages: Anthropic.Beta.BetaMessageParam[], family: Family): Anthropic.Beta.BetaMessage {
   const last = messages[messages.length - 1];
@@ -262,7 +306,8 @@ function mockModel(messages: Anthropic.Beta.BetaMessageParam[], family: Family):
     if (first.includes("check_id")) {
       const id = JSON.parse(first).check_id;
       const prev = JSON.stringify(messages[messages.length - 2]);
-      if (prev.includes("impersonate_family")) return mk([use("ask_family_member", { check_id: id, member_id: family.members[0]?.id ?? "", question_zh: "媽媽收到自稱是你的訊息，要借五萬，是你嗎？" })], "tool_use");
+      if (prev.includes("impersonate_family")) return mk([use("ask_family_member", { check_id: id, kind: "is_it_you", member_id: family.members[0]?.id ?? "", question_zh: "媽媽收到自稱是你的訊息，要借五萬，是你嗎？" })], "tool_use");
+      if (prev.includes("fake_investment")) return mk([use("ask_family_member", { check_id: id, kind: "heads_up", member_id: family.members[0]?.id ?? "", question_zh: "媽媽說 LINE 群組的王老師要她先匯十萬投資，保證賺 30%，很像投資詐騙。" })], "tool_use");
       if (prev.includes("impersonate_authority")) return mk([use("get_official_contact", { kind: "prosecutor" })], "tool_use");
     }
     return mk([{ type: "text", text: "我正在處理，先不要匯款喔。" }], "end_turn");
@@ -271,6 +316,7 @@ function mockModel(messages: Anthropic.Beta.BetaMessageParam[], family: Family):
     is_likely_scam: risk !== "low", risk, scam_type, claimed_identity: "兒子小明", request: "匯款", amount_twd: 50000,
     red_flags: ["換了新號碼", "很急著要錢", "叫你不要跟家人說"], verdict_zh: risk === "low" ? "看起來沒問題" : "很像詐騙，先不要匯款", verdict_en: risk === "low" ? "Looks fine" : "Likely a scam. Don't send money.", message_summary: text.slice(0, 80),
   });
+  if (/老師|投資|保證/.test(text)) return mk([use("record_check", { ...analysis("fake_investment", "high"), claimed_identity: "王老師", amount_twd: 100000, red_flags: ["保證賺錢", "沒見過面的老師", "要先匯款"] })], "tool_use");
   if (/檢|警|洗錢/.test(text)) return mk([use("record_check", analysis("impersonate_authority", "high"))], "tool_use");
   if (/匯|借|萬|號碼/.test(text)) return mk([use("record_check", analysis("impersonate_family", "high"))], "tool_use");
   return mk([{ type: "text", text: "好的，我在這裡。" }], "end_turn");

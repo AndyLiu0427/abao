@@ -6,7 +6,7 @@ export function cardSpeech(card: Card) {
   return [card.title, card.body].filter(Boolean).join("。");
 }
 
-export default function CardView({ card }: { card: Card }) {
+export default function CardView({ card, done }: { card: Card; done?: boolean }) {
   if (card.type === "warning")
     return (
       <div className={`${card.call165 ? "alarm" : "pop"} rounded-3xl bg-red-600 p-5 text-white shadow-lg`}>
@@ -37,10 +37,10 @@ export default function CardView({ card }: { card: Card }) {
     );
   if (card.type === "waiting")
     return (
-      <div className="pop rounded-3xl border-2 border-amber-400 bg-amber-100 p-5 text-amber-950 shadow">
+      <div className={`pop rounded-3xl border-2 border-amber-400 bg-amber-100 p-5 text-amber-950 shadow ${done ? "opacity-60" : ""}`}>
         <div className="flex items-center gap-3 text-2xl font-extrabold">
-          <span className="inline-block h-7 w-7 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
-          {card.title}
+          {done ? <span>✔️</span> : <span className="inline-block h-7 w-7 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />}
+          {done ? card.title.replace("正在", "已").replace("…", "") : card.title}
         </div>
         {card.body && <div className="mt-2 text-xl">{card.body}</div>}
         {card.en && <div className="mt-3 text-sm opacity-70">{card.en}</div>}
