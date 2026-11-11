@@ -1,0 +1,277 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { addMemory, getChat, getMemory, newId, pushChat, saveCheck } from "./store";
+import type { Analysis, Card, ChatMessage, Check, Family } from "./types";
+
+const MODEL = process.env.ABAO_MODEL || "claude-fable-5-2";
+const MAX_TURNS = 5;
+
+
+const tools: Anthropic.Beta.BetaTool[] = [
+  {
+    name: "record_check",
+    description:
+      "Record your analysis of a suspicious message, screenshot or phone call the parent just showed you. Call this once for every message you are asked to check, before any other tool. Returns a check_id.",
+    input_schema: {
+      type: "object",
+      properties: {
+        is_likely_scam: { type: "boolean" },
+        risk: { type: "string", enum: ["high", "medium", "low"] },
+        scam_type: {
+          type: "string",
+          enum: ["impersonate_family", "impersonate_authority", "fake_investment", "fake_shopping", "romance", "other", "not_scam"],
+        },
+        claimed_identity: { type: "string", description: "Who the sender claims to be, e.g. 兒子小明. Empty string if unclear." },
+        request: { type: "string", description: "What the sender wants, in Traditional Chinese, e.g. 匯款到新帳戶" },
+        amount_twd: { type: ["number", "null"], description: "Amount of money requested in TWD, or null" },
+        red_flags: { type: "array", items: { type: "string" }, description: "Up to 4 short Traditional Chinese phrases a 70-year-old understands" },
+        verdict_zh: { type: "string", description: "One-line verdict for the parent in Traditional Chinese, under 20 characters" },
+        verdict_en: { type: "string", description: "The same verdict in short English" },
+        message_summary: { type: "string", description: "The suspicious message quoted or summarised in Traditional Chinese, under 80 characters" },
+      },
+      required: ["is_likely_scam", "risk", "scam_type", "claimed_identity", "request", "amount_twd", "red_flags", "verdict_zh", "verdict_en", "message_summary"],
+    },
+  },
+  {
+    name: "ask_family_member",
+    description:
+      "Send a real family member a one-tap question (是我 / 不是我) to confirm whether a message really came from them. Use it right after record_check whenever the sender claims to be a relative or someone the family would know. The answer arrives later and the app shows it to the parent automatically, so do not wait for it.",
+    input_schema: {
+      type: "object",
+      properties: {
+        check_id: { type: "string" },
+        member_id: { type: "string", description: "id of the family member to ask, from the family list" },
+        question_zh: { type: "string", description: "Short question shown to that family member in Traditional Chinese, e.g. 媽媽收到自稱是你的訊息，說換了號碼要借五萬，是你嗎？" },
+      },
+      required: ["check_id", "member_id", "question_zh"],
+    },
+  },
+  {
+    name: "get_official_contact",
+    description:
+      "Show the parent a card with official phone numbers (165 anti-fraud hotline, 110 police, bank customer service). Use it whenever the sender claims to be police, a prosecutor, a court, a bank or the government, or when there is no family member to ask about a risky message.",
+    input_schema: {
+      type: "object",
+      properties: { kind: { type: "string", enum: ["police", "prosecutor", "bank", "government", "other"] } },
+      required: ["kind"],
+    },
+  },
+  {
+    name: "remember_fact",
+    description: "Save a lasting fact about the parent or the family (where someone works, their real phone habits, upcoming events) so you can use it in future checks.",
+    input_schema: { type: "object", properties: { fact: { type: "string", description: "One short sentence in Traditional Chinese" } }, required: ["fact"] },
+  },
+];
+
+function systemPrompt(family: Family, memory: string[]) {
+  return `You are Abao (阿寶), a personal guardian agent that lives on the phone of ${family.elderName}, an older adult in Taiwan. You talk with them like a caring grandchild.
+
+Why you exist: scammers win by pretending to be someone the parent trusts and by isolating them ("don't tell Dad", "this investigation is confidential"). Your job is to break that isolation before any money moves, by pulling the real person or the real institution into the conversation. Your own judgement about whether something is a scam is only the trigger; confirmation from a real person is what protects them.
+
+The family (these are the only people you can reach):
+${JSON.stringify({ parent: family.elderName, members: family.members.map(({ id, name, relation }) => ({ id, name, relation })) })}
+
+Things you remember about this family:
+${memory.length ? memory.map((m) => `- ${m}`).join("\n") : "(nothing yet)"}
+
+When the parent shows you a message, screenshot, or describes a call they are unsure about:
+1. Call record_check with your analysis. Read Traditional Chinese text in screenshots carefully. Common Taiwan patterns: a "child" who changed phone number or LINE and urgently needs money and asks for secrecy; police, prosecutors, banks or health insurance claiming the account is involved in money laundering and asking for a transfer to a "safe account"; investment "teachers" with guaranteed returns; fake buyers and romance scams.
+2. If the sender claims to be a relative or friend, call ask_family_member in the same turn as soon as you have the check_id. Pick the member they claim to be; if that person is not on the list, ask the closest family member to help verify. Then tell the parent you are asking that person right now and that they should not send money or reply until the answer comes back.
+3. If the sender claims to be police, prosecutors, a court, a bank or the government, call get_official_contact and tell the parent to hang up and call the official number themselves.
+4. If the family list is empty and the message is risky, call get_official_contact and suggest inviting a family member with the 邀請家人 button at the top.
+5. If the message is ordinary and safe, say so briefly and warmly.
+
+Never tell the parent to call a phone number, open a link, or add a LINE ID that appears inside the suspicious message.
+For anything else (a question, a confusing screen, small talk), just help kindly. When they mention a lasting fact about themselves or the family, call remember_fact.
+
+How to write: Traditional Chinese as used in Taiwan, short plain sentences a 70-year-old can follow when read aloud, at most three short lines, no markdown, no lists, no English. The app shows your verdict, red flags and phone numbers as cards, so do not repeat them in your reply; say what you are doing and the one thing they should do now.`;
+}
+
+type Ctx = { family: Family; thumb?: string; out: ChatMessage[]; checks: Map<string, Check> };
+
+const msg = (partial: Omit<ChatMessage, "id" | "role" | "createdAt">): ChatMessage => ({
+  id: newId(),
+  role: "abao",
+  createdAt: Date.now(),
+  ...partial,
+});
+
+export const officialCard = (title = "請自己撥打官方電話", body = "不要打訊息裡的電話，也不要點裡面的連結。"): Card => ({
+  type: "official",
+  title,
+  body,
+  en: "Hang up. Call the official numbers yourself.",
+  contacts: [
+    { label: "165 反詐騙專線", tel: "165" },
+    { label: "110 報案", tel: "110" },
+    { label: "銀行：請打卡片背面的客服電話" },
+  ],
+});
+
+async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): Promise<string> {
+  if (name === "record_check") {
+    const a = input as unknown as Analysis;
+    const check: Check = { id: newId(), familyId: ctx.family.id, createdAt: Date.now(), analysis: a, thumb: ctx.thumb, status: "done" };
+    await saveCheck(check, true);
+    ctx.checks.set(check.id, check);
+    const risky = a.risk !== "low";
+    ctx.out.push(
+      msg({
+        card: {
+          type: risky ? "warning" : "safe",
+          title: a.verdict_zh,
+          en: a.verdict_en,
+          flags: risky ? (a.red_flags ?? []).slice(0, 4) : undefined,
+        },
+      }),
+    );
+    return JSON.stringify({ check_id: check.id });
+  }
+  if (name === "ask_family_member") {
+    const members = ctx.family.members;
+    if (!members.length) return "No family member has joined yet. Use get_official_contact and suggest inviting family.";
+    const member = members.find((m) => m.id === input.member_id) ?? members.find((m) => m.name === input.member_id) ?? members[0];
+    const check = ctx.checks.get(String(input.check_id)) ?? [...ctx.checks.values()].pop();
+    if (!check) return "Unknown check_id. Call record_check first.";
+    check.status = "waiting";
+    check.askedMemberId = member.id;
+    check.askedName = member.name;
+    check.question = String(input.question_zh ?? "");
+    await saveCheck(check);
+    ctx.out.push(
+      msg({
+        card: { type: "waiting", checkId: check.id, title: `正在問${member.name}本人…`, body: "回覆之前，先不要匯款。", en: `Asking the real ${member.name} now. Don't send money yet.` },
+      }),
+    );
+    return `Question sent to ${member.name} (${member.relation}). The app will show their answer to the parent as soon as they tap.`;
+  }
+  if (name === "get_official_contact") {
+    ctx.out.push(msg({ card: officialCard() }));
+    return JSON.stringify({ anti_fraud_hotline: "165", police: "110", bank: "the customer service number printed on the back of the parent's own card" });
+  }
+  if (name === "remember_fact") {
+    await addMemory(ctx.family.id, String(input.fact ?? ""));
+    return "Saved.";
+  }
+  return `Unknown tool ${name}`;
+}
+
+function historyToMessages(history: ChatMessage[]): Anthropic.Beta.BetaMessageParam[] {
+  const out: Anthropic.Beta.BetaMessageParam[] = [];
+  for (const m of history.slice(-20)) {
+    const text =
+      m.text ??
+      (m.card ? `[App card shown to the parent: ${m.card.title}${m.card.body ? " " + m.card.body : ""}]` : m.imageUrl ? "[The parent sent a screenshot earlier]" : "");
+    if (!text) continue;
+    const role = m.role === "user" ? "user" : "assistant";
+    if (!out.length && role === "assistant") continue;
+    out.push({ role, content: text });
+  }
+  return out;
+}
+
+async function callModel(client: Anthropic, params: Omit<Anthropic.Beta.MessageCreateParamsNonStreaming, "model" | "max_tokens">): Promise<Anthropic.Beta.BetaMessage> {
+  const base = { model: MODEL, max_tokens: 4000, output_config: { effort: "low" as const }, ...params };
+  try {
+    // Server-side fallback: if a safety classifier declines, the API re-runs the request on a fallback model.
+    return await client.beta.messages.create({ ...base, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" });
+  } catch (e) {
+    if (e instanceof Anthropic.BadRequestError) {
+      console.error("fallbacks request rejected, retrying without:", e.message);
+      return await client.beta.messages.create(base);
+    }
+    throw e;
+  }
+}
+
+export const failSafeMessages = (): ChatMessage[] => [
+  msg({ text: "阿寶現在看不清楚這則訊息。先不要匯款，也不要回覆對方，打 165 問一下最安全。" }),
+  msg({ card: officialCard("先別匯款，撥 165 問問看") }),
+];
+
+export async function runAgent(opts: {
+  family: Family;
+  userMessage: ChatMessage;
+  imageBase64?: string;
+  mediaType?: string;
+}): Promise<ChatMessage[]> {
+  const { family, userMessage } = opts;
+  const [history, memory] = await Promise.all([getChat(family.id), getMemory(family.id)]);
+  const ctx: Ctx = { family, thumb: userMessage.imageUrl, out: [], checks: new Map() };
+
+  const content: Anthropic.Beta.BetaContentBlockParam[] = [];
+  if (opts.imageBase64)
+    content.push({ type: "image", source: { type: "base64", media_type: (opts.mediaType ?? "image/jpeg") as "image/jpeg", data: opts.imageBase64 } });
+  content.push({ type: "text", text: userMessage.text || "這是我收到的訊息，請幫我看看。" });
+
+  const messages: Anthropic.Beta.BetaMessageParam[] = [...historyToMessages(history.filter((m) => m.id !== userMessage.id)), { role: "user", content }];
+  const client = new Anthropic();
+  let finalText = "";
+
+  try {
+    for (let turn = 0; turn < MAX_TURNS; turn++) {
+      const res = process.env.MOCK_AI ? mockModel(messages, family) : await callModel(client, { system: systemPrompt(family, memory), tools, messages });
+      if (res.stop_reason === "refusal") throw new Error("refusal");
+      finalText = res.content
+        .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("\n")
+        .trim();
+      const toolUses = res.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");
+      if (res.stop_reason !== "tool_use" || !toolUses.length) break;
+      messages.push({ role: "assistant", content: res.content as Anthropic.Beta.BetaContentBlockParam[] });
+      const results: Anthropic.Beta.BetaToolResultBlockParam[] = [];
+      for (const t of toolUses) {
+        let result: string;
+        let isError = false;
+        try {
+          result = await runTool(t.name, (t.input ?? {}) as Record<string, unknown>, ctx);
+        } catch (e) {
+          result = `Tool failed: ${(e as Error).message}`;
+          isError = true;
+        }
+        results.push({ type: "tool_result", tool_use_id: t.id, content: result, is_error: isError });
+      }
+      messages.push({ role: "user", content: results });
+    }
+  } catch (e) {
+    console.error("agent error:", e);
+    if (!ctx.out.length) ctx.out.push(...failSafeMessages());
+    else finalText = "先不要匯款，也不要回覆對方。有問題可以打 165。";
+  }
+
+  if (finalText) ctx.out.push(msg({ text: finalText }));
+  if (!ctx.out.length) ctx.out.push(...failSafeMessages());
+  // Keep order stable: text explanation first, then cards.
+  const texts = ctx.out.filter((m) => m.text);
+  const cards = ctx.out.filter((m) => !m.text);
+  const ordered = [...texts, ...cards].map((m, i) => ({ ...m, createdAt: Date.now() + i }));
+  for (const m of ordered) await pushChat(family.id, m);
+  return ordered;
+}
+
+// Local development only (MOCK_AI=1): a scripted stand-in so the loop can be exercised without an API key.
+function mockModel(messages: Anthropic.Beta.BetaMessageParam[], family: Family): Anthropic.Beta.BetaMessage {
+  const last = messages[messages.length - 1];
+  const blocks = Array.isArray(last.content) ? last.content : [];
+  const toolResults = blocks.filter((b) => b.type === "tool_result");
+  const text = blocks.map((b) => (b.type === "text" ? b.text : "")).join("");
+  const mk = (content: unknown[], stop: string) => ({ content, stop_reason: stop }) as unknown as Anthropic.Beta.BetaMessage;
+  const use = (name: string, input: unknown) => ({ type: "tool_use", id: newId(), name, input });
+  if (toolResults.length) {
+    const first = String((toolResults[0] as { content?: unknown }).content ?? "");
+    if (first.includes("check_id")) {
+      const id = JSON.parse(first).check_id;
+      const prev = JSON.stringify(messages[messages.length - 2]);
+      if (prev.includes("impersonate_family")) return mk([use("ask_family_member", { check_id: id, member_id: family.members[0]?.id ?? "", question_zh: "媽媽收到自稱是你的訊息，要借五萬，是你嗎？" })], "tool_use");
+      if (prev.includes("impersonate_authority")) return mk([use("get_official_contact", { kind: "prosecutor" })], "tool_use");
+    }
+    return mk([{ type: "text", text: "我正在處理，先不要匯款喔。" }], "end_turn");
+  }
+  const analysis = (scam_type: string, risk: string) => ({
+    is_likely_scam: risk !== "low", risk, scam_type, claimed_identity: "兒子小明", request: "匯款", amount_twd: 50000,
+    red_flags: ["換了新號碼", "很急著要錢", "叫你不要跟家人說"], verdict_zh: risk === "low" ? "看起來沒問題" : "很像詐騙，先不要匯款", verdict_en: risk === "low" ? "Looks fine" : "Likely a scam. Don't send money.", message_summary: text.slice(0, 80),
+  });
+  if (/檢|警|洗錢/.test(text)) return mk([use("record_check", analysis("impersonate_authority", "high"))], "tool_use");
+  if (/匯|借|萬|號碼/.test(text)) return mk([use("record_check", analysis("impersonate_family", "high"))], "tool_use");
+  return mk([{ type: "text", text: "好的，我在這裡。" }], "end_turn");
+}

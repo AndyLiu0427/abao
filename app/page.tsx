@@ -1,69 +1,363 @@
-import Image from "next/image";
+"use client";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import CardView, { cardSpeech } from "@/components/CardView";
+import { type ElderId, type FamilyId, load, prepareImage, save, speak, stopSpeaking } from "@/lib/client";
+import type { ChatMessage, Family } from "@/lib/types";
+
+const SAMPLES = [
+  { label: "「媽，我換號碼了」", text: "我剛剛收到這則 LINE：「媽，我是小明，我手機壞了換新號碼，這是我新的 LINE。我現在急需 5 萬塊周轉，下午就還妳，先不要跟爸說。」" },
+  { label: "「地檢署通知」", text: "我收到簡訊：「臺北地檢署通知：您的帳戶涉及洗錢案，請立即撥打 02-2345-6789 配合調查，否則將凍結帳戶。」" },
+  { label: "「老師帶單」", text: "有人把我加進 LINE 群組，說「陳老師帶單，保證月報酬 30%，名額有限，先匯 10 萬入金」。" },
+];
+
+type SR = { lang: string; interimResults: boolean; onresult: (e: { results: { 0: { transcript: string } }[] }) => void; onend: () => void; onerror: () => void; start: () => void; stop: () => void };
 
 export default function Home() {
+  const [me, setMe] = useState<ElderId | null>(null);
+  const [familyMe, setFamilyMe] = useState<FamilyId | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setMe(load<ElderId>("abao.elder"));
+    setFamilyMe(load<FamilyId>("abao.family"));
+    setReady(true);
+  }, []);
+
+  if (!ready) return null;
+  if (!me) return <Onboarding familyMe={familyMe} onDone={setMe} />;
+  return <Chat me={me} />;
+}
+
+function Onboarding({ familyMe, onDone }: { familyMe: FamilyId | null; onDone: (e: ElderId) => void }) {
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function start() {
+    setBusy(true);
+    setErr("");
+    try {
+      const res = await fetch("/api/family", { method: "POST", body: JSON.stringify({ elderName: name.trim() || "媽媽" }) });
+      const family: Family = await res.json();
+      const id = { familyId: family.id, name: family.elderName };
+      save("abao.elder", id);
+      onDone(id);
+    } catch {
+      setErr("連線有問題，請再試一次。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
+    <main className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center gap-6 p-6 text-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/icon-192.png" alt="阿寶" className="h-28 w-28 rounded-[28px] shadow-lg" />
+      <div>
+        <h1 className="text-4xl font-extrabold">阿寶 Abao</h1>
+        <p className="mt-3 text-xl leading-relaxed text-stone-700">
+          收到奇怪的訊息，先給阿寶看。
+          <br />
+          阿寶會幫您問家人本人。
+        </p>
+        <p className="mt-2 text-sm text-stone-500">A personal AI agent for your parents. It checks with family before money moves.</p>
+      </div>
+      <div className="w-full space-y-3">
+        <label className="block text-left text-xl font-bold">家人都怎麼叫您？</label>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：媽媽、阿嬤、爸爸" className="h-16 w-full rounded-2xl border-2 border-orange-300 bg-white px-4 text-2xl outline-none focus:border-orange-500" />
+        <button onClick={start} disabled={busy} className="h-16 w-full rounded-2xl bg-orange-500 text-2xl font-extrabold text-white shadow-lg active:scale-95 disabled:opacity-60">
+          {busy ? "準備中…" : "開始使用阿寶"}
+        </button>
+        {err && <p className="text-lg text-red-600">{err}</p>}
+      </div>
+      <div className="text-base text-stone-500">
+        我是家人：請點長輩傳給您的邀請連結。
+        {familyMe && (
+          <a href="/family" className="ml-1 font-bold text-orange-600 underline">
+            回到我的通知頁
           </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function Chat({ me }: { me: ElderId }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [family, setFamily] = useState<Family | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [text, setText] = useState("");
+  const [voiceOn, setVoiceOn] = useState(true);
+  const [showInvite, setShowInvite] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [canListen, setCanListen] = useState(false);
+  const seen = useRef(new Set<string>());
+  const loaded = useRef(false);
+  const since = useRef(0);
+  const voiceRef = useRef(true);
+  const bottom = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const recRef = useRef<SR | null>(null);
+
+  useEffect(() => {
+    const v = load<boolean>("abao.voice");
+    if (v === false) {
+      setVoiceOn(false);
+      voiceRef.current = false;
+    }
+    setCanListen("webkitSpeechRecognition" in window || "SpeechRecognition" in window);
+  }, []);
+
+  const merge = useCallback((incoming: ChatMessage[], announce: boolean) => {
+    const fresh = incoming.filter((m) => !seen.current.has(m.id));
+    if (!fresh.length) return;
+    fresh.forEach((m) => seen.current.add(m.id));
+    since.current = Math.max(since.current, ...fresh.map((m) => m.createdAt));
+    setMessages((prev) => [...prev.filter((p) => !fresh.some((f) => f.id === p.id)), ...fresh].sort((a, b) => a.createdAt - b.createdAt));
+    if (announce && voiceRef.current) {
+      for (const m of fresh) if (m.role === "abao") speak(m.text ?? (m.card ? cardSpeech(m.card) : ""));
+    }
+    if (announce && fresh.some((m) => m.card?.type === "warning" && m.card.call165)) navigator.vibrate?.([300, 150, 300, 150, 300]);
+  }, []);
+
+  useEffect(() => {
+    let stop = false;
+    async function poll() {
+      try {
+        const res = await fetch(`/api/chat/history?familyId=${me.familyId}&since=${since.current}`, { cache: "no-store" });
+        if (res.status === 404) {
+          localStorage.removeItem("abao.elder");
+          location.reload();
+          return;
+        }
+        const data = await res.json();
+        if (stop) return;
+        setFamily(data.family);
+        merge(data.messages, loaded.current);
+        loaded.current = true;
+      } catch {}
+    }
+    poll();
+    const t = setInterval(poll, 2000);
+    return () => {
+      stop = true;
+      clearInterval(t);
+    };
+  }, [me.familyId, merge]);
+
+  useEffect(() => {
+    bottom.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, busy]);
+
+  async function send(payload: { text?: string; imageBase64?: string; thumb?: string }) {
+    if (busy) return;
+    stopSpeaking();
+    if (voiceRef.current) speak(""); // unlock speech on iOS inside the tap
+    const id = `u${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+    const local: ChatMessage = { id, role: "user", text: payload.text, imageUrl: payload.thumb, createdAt: Date.now() };
+    seen.current.add(id);
+    setMessages((prev) => [...prev, local]);
+    setBusy(true);
+    setText("");
+    try {
+      const res = await fetch("/api/chat", { method: "POST", body: JSON.stringify({ id, familyId: me.familyId, mediaType: "image/jpeg", ...payload }) });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      merge(data.messages.filter((m: ChatMessage) => m.id !== id), true);
+    } catch {
+      merge(
+        [
+          { id: `e${Date.now()}`, role: "abao", text: "阿寶連不上網路。先不要匯款，有疑問請打 165。", createdAt: Date.now() },
+          { id: `e${Date.now()}c`, role: "abao", createdAt: Date.now() + 1, card: { type: "official", title: "先別匯款，撥 165 問問看", contacts: [{ label: "165 反詐騙專線", tel: "165" }, { label: "110 報案", tel: "110" }] } },
+        ],
+        true,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const img = await prepareImage(file);
+      await send({ ...img, text: text.trim() || undefined });
+    } catch {
+      alert("這張圖片打不開，請再選一次。");
+    }
+  }
+
+  function toggleListen() {
+    if (listening) return recRef.current?.stop();
+    const W = window as unknown as { webkitSpeechRecognition?: new () => SR; SpeechRecognition?: new () => SR };
+    const Rec = W.webkitSpeechRecognition ?? W.SpeechRecognition;
+    if (!Rec) return;
+    stopSpeaking();
+    const rec = new Rec();
+    rec.lang = "zh-TW";
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      const said = e.results[0]?.[0]?.transcript;
+      if (said) send({ text: said });
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recRef.current = rec;
+    setListening(true);
+    rec.start();
+  }
+
+  function toggleVoice() {
+    const next = !voiceOn;
+    setVoiceOn(next);
+    voiceRef.current = next;
+    save("abao.voice", next);
+    if (!next) stopSpeaking();
+  }
+
+  const members = family?.members ?? [];
+
+  return (
+    <main className="mx-auto flex h-dvh max-w-md flex-col bg-orange-50">
+      <header className="flex items-center gap-2 bg-orange-500 px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-white shadow">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon-192.png" alt="" className="h-11 w-11 rounded-xl border-2 border-white/60" />
+        <div className="mr-auto leading-tight">
+          <div className="text-2xl font-extrabold">阿寶</div>
+          <div className="text-xs opacity-90">{me.name}的守護小幫手</div>
         </div>
-      </main>
+        <div className="flex items-center gap-1.5">
+          {members.slice(0, 3).map((m) => (
+            <a key={m.id} href={m.phone ? `tel:${m.phone}` : undefined} title={m.name} className="flex h-11 min-w-11 items-center justify-center rounded-full bg-white px-2 text-base font-bold text-orange-700">
+              {m.name.slice(0, 2)}
+            </a>
+          ))}
+          <button onClick={() => setShowInvite(true)} className="h-11 rounded-full bg-orange-700 px-3 text-base font-bold">
+            ＋家人
+          </button>
+          <button onClick={toggleVoice} aria-label="語音開關" className="h-11 w-11 rounded-full bg-orange-600 text-xl">
+            {voiceOn ? "🔊" : "🔇"}
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 space-y-3 overflow-y-auto p-3">
+        <Bubble role="abao">
+          {me.name}您好，我是阿寶。收到奇怪的訊息或電話，先拍給我看，或直接跟我說。我會幫您問家人本人。
+        </Bubble>
+        {members.length === 0 && (
+          <button onClick={() => setShowInvite(true)} className="w-full rounded-3xl border-2 border-dashed border-orange-400 bg-white p-4 text-left text-xl font-bold text-orange-700">
+            👨‍👩‍👧 先邀請一位家人，阿寶才能幫您問本人 →
+          </button>
+        )}
+        {messages.length === 0 && (
+          <div className="space-y-2 pt-1">
+            <div className="text-base text-stone-500">試試看 Try an example：</div>
+            {SAMPLES.map((s) => (
+              <button key={s.label} onClick={() => send({ text: s.text })} className="block w-full rounded-2xl bg-white p-3 text-left text-xl shadow-sm active:scale-[0.98]">
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {messages.map((m) =>
+          m.card ? (
+            <CardView key={m.id} card={m.card} />
+          ) : (
+            <Bubble key={m.id} role={m.role}>
+              {m.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={m.imageUrl} alt="截圖" className="mb-1 max-h-64 rounded-xl" />
+              )}
+              {m.text}
+            </Bubble>
+          ),
+        )}
+        {busy && (
+          <Bubble role="abao">
+            <span className="inline-flex items-center gap-2 text-stone-500">
+              <span className="inline-block h-5 w-5 animate-spin rounded-full border-4 border-orange-400 border-t-transparent" />
+              阿寶正在看…
+            </span>
+          </Bubble>
+        )}
+        <div ref={bottom} />
+      </div>
+
+      <footer className="space-y-2 border-t border-orange-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex gap-2">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && text.trim() && send({ text: text.trim() })}
+            placeholder="打字，或把訊息貼在這裡"
+            className="h-14 min-w-0 flex-1 rounded-2xl border-2 border-stone-200 px-4 text-xl outline-none focus:border-orange-400"
+          />
+          <button onClick={() => text.trim() && send({ text: text.trim() })} disabled={busy || !text.trim()} className="h-14 rounded-2xl bg-orange-500 px-5 text-xl font-bold text-white disabled:opacity-40">
+            送出
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+          <button onClick={() => fileRef.current?.click()} disabled={busy} className="h-16 flex-1 rounded-2xl bg-orange-500 text-2xl font-extrabold text-white shadow active:scale-95 disabled:opacity-50">
+            📷 拍照／截圖
+          </button>
+          {canListen && (
+            <button onClick={toggleListen} disabled={busy} className={`h-16 flex-1 rounded-2xl text-2xl font-extrabold shadow active:scale-95 disabled:opacity-50 ${listening ? "bg-red-600 text-white" : "bg-stone-800 text-white"}`}>
+              {listening ? "● 我在聽…" : "🎤 用說的"}
+            </button>
+          )}
+        </div>
+      </footer>
+
+      {showInvite && <Invite familyId={me.familyId} elderName={me.name} onClose={() => setShowInvite(false)} />}
+    </main>
+  );
+}
+
+function Bubble({ role, children }: { role: "user" | "abao"; children: React.ReactNode }) {
+  return (
+    <div className={`flex ${role === "user" ? "justify-end" : "justify-start"}`}>
+      <div className={`max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-[22px] leading-relaxed shadow-sm ${role === "user" ? "rounded-br-md bg-orange-500 text-white" : "rounded-bl-md bg-white"}`}>{children}</div>
+    </div>
+  );
+}
+
+function Invite({ familyId, elderName, onClose }: { familyId: string; elderName: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const link = `${location.origin}/join/${familyId}`;
+  const shareText = `我在用「阿寶」防詐騙小幫手。點這個連結當我的家人，有人冒充你的時候阿寶會直接問你：`;
+
+  async function share() {
+    try {
+      if (navigator.share) return await navigator.share({ title: "阿寶 Abao", text: shareText, url: link });
+    } catch {
+      return;
+    }
+    await navigator.clipboard?.writeText(link);
+    setCopied(true);
+  }
+
+  return (
+    <div className="fixed inset-0 z-10 flex items-end justify-center bg-black/50" onClick={onClose}>
+      <div className="w-full max-w-md space-y-4 rounded-t-3xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-2xl font-extrabold">邀請家人</h2>
+        <p className="text-lg text-stone-600">請家人掃這個碼，或把連結傳給他。以後有人冒充他，阿寶會直接問他本人。</p>
+        <div className="flex justify-center">
+          <QRCodeSVG value={link} size={190} />
+        </div>
+        <div className="break-all rounded-xl bg-stone-100 p-2 text-sm text-stone-600">{link}</div>
+        <button onClick={share} className="h-16 w-full rounded-2xl bg-orange-500 text-2xl font-extrabold text-white">
+          {copied ? "已複製連結 ✓" : `傳給家人`}
+        </button>
+        <button onClick={onClose} className="h-12 w-full text-xl text-stone-500">
+          關閉
+        </button>
+        <p className="text-xs text-stone-400">Invite link for {elderName}&apos;s family. No app store, no account.</p>
+      </div>
     </div>
   );
 }
