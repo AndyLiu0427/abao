@@ -19,7 +19,11 @@ export default function Home() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setMe(load<ElderId>("abao.elder"));
+    // /?f=<familyId>&n=<name> opens a specific family without touching saved identity (used by /demo).
+    const q = new URLSearchParams(location.search);
+    const f = q.get("f");
+    if (q.get("quiet")) save("abao.voice", false);
+    setMe(f ? { familyId: f, name: q.get("n") || "媽媽" } : load<ElderId>("abao.elder"));
     setFamilyMe(load<FamilyId>("abao.family"));
     setReady(true);
   }, []);
