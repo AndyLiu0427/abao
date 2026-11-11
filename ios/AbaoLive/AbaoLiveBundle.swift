@@ -18,7 +18,15 @@ private func emoji(_ phase: String) -> String {
     }
 }
 
-private func short(_ phase: String) -> String {
+private func short(_ phase: String, en: Bool = false) -> String {
+    if en {
+        switch phase {
+        case "danger": return "Don't pay"
+        case "safe": return "Safe"
+        case "alert": return "Confirm"
+        default: return "Asking"
+        }
+    }
     switch phase {
     case "danger": return "別匯款"
     case "safe": return "安全"
@@ -42,7 +50,7 @@ struct AbaoLiveActivity: Widget {
             HStack(spacing: 14) {
                 Text(emoji(context.state.phase)).font(.system(size: 40))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("阿寶 Abao").font(.caption).bold().opacity(0.85)
+                    Text(context.state.en ? "Abao" : "阿寶 Abao").font(.caption).bold().opacity(0.85)
                     Text(context.state.title).font(.title3).bold().lineLimit(2)
                     Text(context.state.detail).font(.subheadline).opacity(0.9).lineLimit(2)
                 }
@@ -64,7 +72,7 @@ struct AbaoLiveActivity: Widget {
                     if context.state.phase == "asking" {
                         ProgressView().tint(.orange)
                     } else {
-                        Text(short(context.state.phase)).font(.headline).foregroundStyle(tint(context.state.phase))
+                        Text(short(context.state.phase, en: context.state.en)).font(.headline).foregroundStyle(tint(context.state.phase))
                     }
                 }
                 DynamicIslandExpandedRegion(.center) {
@@ -76,7 +84,7 @@ struct AbaoLiveActivity: Widget {
             } compactLeading: {
                 Text(emoji(context.state.phase))
             } compactTrailing: {
-                Text(short(context.state.phase)).font(.caption).bold().foregroundStyle(tint(context.state.phase))
+                Text(short(context.state.phase, en: context.state.en)).font(.caption).bold().foregroundStyle(tint(context.state.phase))
             } minimal: {
                 Text(emoji(context.state.phase))
             }

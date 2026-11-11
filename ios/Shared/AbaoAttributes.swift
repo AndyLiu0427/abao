@@ -8,6 +8,8 @@ struct AbaoAttributes: ActivityAttributes {
         var phase: String
         var title: String
         var detail: String
+        /// English labels on the island for families using the English web app.
+        var en: Bool = false
     }
     var elderName: String
 }

@@ -35,7 +35,9 @@ final class Guardian: NSObject, ObservableObject, WKUIDelegate {
         guard timer == nil else { return }
         UNUserNotificationCenter.current().delegate = notifications
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
-        webView.load(URLRequest(url: Self.base))
+        // `-abaoLang en` launch argument opens the English web app (used for the English demo).
+        let lang = UserDefaults.standard.string(forKey: "abaoLang")
+        webView.load(URLRequest(url: lang == "en" ? URL(string: "/?lang=en", relativeTo: Self.base)! : Self.base))
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in await self?.tick() }
         }
@@ -98,6 +100,8 @@ final class Guardian: NSObject, ObservableObject, WKUIDelegate {
     private func watchElder(familyId: String, name: String) async {
         guard let data = await fetch("/api/chat/history?familyId=\(familyId)"),
               let messages = data["messages"] as? [[String: Any]] else { return }
+        let en = ((data["family"] as? [String: Any])?["lang"] as? String) == "en"
+        let name = en && name == "媽媽" ? "Mom" : name
         let cards = messages.compactMap { $0["card"] as? [String: Any] }
         guard let index = cards.lastIndex(where: { ($0["type"] as? String) == "waiting" }) else { return }
         let waiting = cards[index]
@@ -108,17 +112,19 @@ final class Guardian: NSObject, ObservableObject, WKUIDelegate {
             let danger = (answer["type"] as? String) == "warning"
             let state = AbaoAttributes.ContentState(
                 phase: danger ? "danger" : "safe",
-                title: (answer["title"] as? String) ?? (danger ? "這是詐騙" : "確認沒問題"),
-                detail: danger ? "千萬不要匯款，也不要再回對方" : "家人已經確認了"
+                title: (answer["title"] as? String) ?? (en ? (danger ? "This is a scam" : "All clear") : (danger ? "這是詐騙" : "確認沒問題")),
+                detail: en ? (danger ? "Do not send money or reply to them" : "Your family confirmed it") : (danger ? "千萬不要匯款，也不要再回對方" : "家人已經確認了"),
+                en: en
             )
             await show(key: key, elderName: name, state: state)
-            notify(id: "answer-\(key)", title: "阿寶：" + state.title, body: state.detail)
+            notify(id: "answer-\(key)", title: (en ? "Abao: " : "阿寶：") + state.title, body: state.detail)
             await finish(key: key, state: state)
         } else {
             await show(key: key, elderName: name, state: .init(
                 phase: "asking",
-                title: (waiting["title"] as? String) ?? "正在問家人…",
-                detail: "回覆之前，先不要匯款"
+                title: (waiting["title"] as? String) ?? (en ? "Asking your family…" : "正在問家人…"),
+                detail: en ? "Don't send money until they answer" : "回覆之前，先不要匯款",
+                en: en
             ))
         }
     }
@@ -128,20 +134,23 @@ final class Guardian: NSObject, ObservableObject, WKUIDelegate {
     private func watchFamily(familyId: String, memberId: String) async {
         guard let data = await fetch("/api/family/pending?familyId=\(familyId)&memberId=\(memberId)") else { return }
         let pending = (data["pending"] as? [[String: Any]]) ?? []
-        let elder = ((data["family"] as? [String: Any])?["elderName"] as? String) ?? "媽媽"
+        let en = ((data["family"] as? [String: Any])?["lang"] as? String) == "en"
+        let elder = ((data["family"] as? [String: Any])?["elderName"] as? String) ?? (en ? "Mom" : "媽媽")
         guard let check = pending.first, let key = check["id"] as? String else {
             if !activityKey.isEmpty, let activity {
-                let done = AbaoAttributes.ContentState(phase: "safe", title: "已回覆\(elder)", detail: "阿寶已經把你的回答告訴\(elder)")
+                let done = en
+                    ? AbaoAttributes.ContentState(phase: "safe", title: "Answered \(elder)", detail: "Abao told \(elder) your answer", en: true)
+                    : AbaoAttributes.ContentState(phase: "safe", title: "已回覆\(elder)", detail: "阿寶已經把你的回答告訴\(elder)")
                 await activity.end(.init(state: done, staleDate: nil), dismissalPolicy: .after(.now + 6))
                 self.activity = nil
                 activityKey = ""
             }
             return
         }
-        let question = (check["question"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "\(elder)收到自稱是你的訊息，是你嗎？"
-        let state = AbaoAttributes.ContentState(phase: "alert", title: "\(elder)需要你確認", detail: question)
+        let question = (check["question"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? (en ? "\(elder) got a message claiming to be you. Is it you?" : "\(elder)收到自稱是你的訊息，是你嗎？")
+        let state = AbaoAttributes.ContentState(phase: "alert", title: en ? "\(elder) needs you" : "\(elder)需要你確認", detail: question, en: en)
         await show(key: key, elderName: elder, state: state)
-        notify(id: "ask-\(key)", title: "阿寶：" + state.title, body: question)
+        notify(id: "ask-\(key)", title: (en ? "Abao: " : "阿寶：") + state.title, body: question)
     }
 
     // MARK: Live Activity and notifications
