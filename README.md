@@ -6,7 +6,17 @@ Abao is a personal AI companion for your parents. It chats with them every day, 
 
 Built at c0mpiled-18 Taipei (YC RFS: AI for the Aging Population).
 
-**Live:** https://abao.vercel.app
+## ▶ Try it now (no install, no login)
+
+| | |
+|---|---|
+| **[▶ Open the live demo](https://abao.vercel.app/demo?lang=en)** | Mom's phone and her son's phone side by side, in one browser tab. Tap a sample scam message on the left, then answer on the right. |
+| **[🎬 Watch the 90-second video](https://abao.vercel.app/abao-demo.mp4)** | The full story, with captions. |
+| **[📱 Open the app](https://abao.vercel.app)** | Real app. On a phone, "Add to Home Screen" installs it. |
+
+<img src="docs/qr.png" alt="QR code for abao.vercel.app" width="160">
+
+Scan to open Abao on your phone.
 
 ## The insight
 
