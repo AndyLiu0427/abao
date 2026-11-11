@@ -5,7 +5,7 @@ import WebKit
 
 /// Watches the conversation and mirrors "Abao is asking your son" onto the Dynamic Island and Lock Screen.
 @MainActor
-final class Guardian: NSObject, ObservableObject, WKUIDelegate {
+final class Guardian: NSObject, ObservableObject, WKUIDelegate, WKNavigationDelegate {
     static let base = URL(string: "https://abao.vercel.app")!
 
     let webView: WKWebView
@@ -29,6 +29,7 @@ final class Guardian: NSObject, ObservableObject, WKUIDelegate {
         webView.backgroundColor = UIColor(red: 1.0, green: 0.97, blue: 0.93, alpha: 1)
         super.init()
         webView.uiDelegate = self
+        webView.navigationDelegate = self
     }
 
     func start() {
@@ -51,6 +52,16 @@ final class Guardian: NSObject, ObservableObject, WKUIDelegate {
             UIApplication.shared.endBackgroundTask(self.background)
             self.background = .invalid
         }
+    }
+
+    // Links that leave Abao (for example "Send with LINE", tel:) open in their own app instead of the web view.
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        guard let url = navigationAction.request.url, navigationAction.targetFrame?.isMainFrame != false,
+              url.host != Self.base.host, url.scheme != "about", url.scheme != "blob", url.scheme != "data" else {
+            return decisionHandler(.allow)
+        }
+        UIApplication.shared.open(url)
+        decisionHandler(.cancel)
     }
 
     // Camera and microphone prompts from the web app are answered by the system permission dialog alone.
