@@ -44,3 +44,4 @@ next-env.d.ts
 ios/build/
 *.xcodeproj/xcuserdata/
 ios/abao-ios-demo*.mp4
+ios/build-device/
