@@ -35,6 +35,19 @@ export const getFamily = (id: string) => get<Family>(`family:${id}`);
 export const saveFamily = (f: Family) => set(`family:${f.id}`, f);
 
 export const getChat = (familyId: string) => list<ChatMessage>(`chat:${familyId}`, -60, -1);
+/**
+ * Read chat by list position, not by timestamp: a message written while another request is
+ * still running can carry an earlier timestamp, and a time cursor would skip it forever.
+ */
+export async function getChatAfter(familyId: string, after: number | null): Promise<{ messages: ChatMessage[]; next: number }> {
+  const key = `chat:${familyId}`;
+  if (after === null) {
+    const total = redis ? await redis.llen(key) : ((mem.get(key) as unknown[]) ?? []).length;
+    return { messages: await list<ChatMessage>(key, -60, -1), next: total };
+  }
+  const messages = await list<ChatMessage>(key, after, -1);
+  return { messages, next: after + messages.length };
+}
 export const pushChat = (familyId: string, m: ChatMessage) => push(`chat:${familyId}`, m);
 
 export const getCheck = (id: string) => get<Check>(`check:${id}`);

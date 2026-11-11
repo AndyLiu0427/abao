@@ -98,6 +98,13 @@ How to write: Traditional Chinese as used in Taiwan, short plain sentences a 70-
 
 type Ctx = { family: Family; thumb?: string; out: ChatMessage[]; checks: Map<string, Check> };
 
+/** Show a card to the parent right away, while the model is still working on its reply. */
+async function emit(ctx: Ctx, card: Card) {
+  const m = msg({ card });
+  ctx.out.push(m);
+  await pushChat(ctx.family.id, m);
+}
+
 const msg = (partial: Omit<ChatMessage, "id" | "role" | "createdAt">): ChatMessage => ({
   id: newId(),
   role: "abao",
@@ -124,16 +131,12 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): 
     await saveCheck(check, true);
     ctx.checks.set(check.id, check);
     const risky = a.risk !== "low";
-    ctx.out.push(
-      msg({
-        card: {
-          type: risky ? "warning" : "safe",
-          title: a.verdict_zh,
-          en: a.verdict_en,
-          flags: risky ? (a.red_flags ?? []).slice(0, 4) : undefined,
-        },
-      }),
-    );
+    await emit(ctx, {
+      type: risky ? "warning" : "safe",
+      title: a.verdict_zh,
+      en: a.verdict_en,
+      flags: risky ? (a.red_flags ?? []).slice(0, 4) : undefined,
+    });
     return JSON.stringify({ check_id: check.id });
   }
   if (name === "ask_family_member") {
@@ -148,18 +151,18 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): 
     check.question = String(input.question_zh ?? "");
     const headsUp = input.kind === "heads_up";
     check.askKind = headsUp ? "heads_up" : "is_it_you";
-    await saveCheck(check);
-    ctx.out.push(
-      msg({
-        card: headsUp
-          ? { type: "waiting", checkId: check.id, title: `正在通知${member.name}…`, body: "等家人回覆之前，先不要匯款。", en: `Bringing ${member.name} in. Don't send money yet.` }
-          : { type: "waiting", checkId: check.id, title: `正在問${member.name}本人…`, body: "回覆之前，先不要匯款。", en: `Asking the real ${member.name} now. Don't send money yet.` },
-      }),
+    // The card goes out before the check becomes answerable, so the family's answer always lands after it.
+    await emit(
+      ctx,
+      headsUp
+        ? { type: "waiting", checkId: check.id, title: `正在通知${member.name}…`, body: "等家人回覆之前，先不要匯款。", en: `Bringing ${member.name} in. Don't send money yet.` }
+        : { type: "waiting", checkId: check.id, title: `正在問${member.name}本人…`, body: "回覆之前，先不要匯款。", en: `Asking the real ${member.name} now. Don't send money yet.` },
     );
+    await saveCheck(check);
     return `Question sent to ${member.name} (${member.relation}). The app will show their answer to the parent as soon as they tap.`;
   }
   if (name === "get_official_contact") {
-    ctx.out.push(msg({ card: officialCard() }));
+    await emit(ctx, officialCard());
     return JSON.stringify({ anti_fraud_hotline: "165", police: "110", bank: "the customer service number printed on the back of the parent's own card" });
   }
   if (name === "remember_fact") {
@@ -249,18 +252,15 @@ export async function runAgent(opts: {
     }
   } catch (e) {
     console.error("agent error:", e);
-    if (!ctx.out.length) ctx.out.push(...failSafeMessages());
-    else finalText = "先不要匯款，也不要回覆對方。有問題可以打 165。";
+    finalText = ctx.out.length ? "先不要匯款，也不要回覆對方。有問題可以打 165。" : "";
   }
 
-  if (finalText) ctx.out.push(msg({ text: finalText }));
-  if (!ctx.out.length) ctx.out.push(...failSafeMessages());
-  // Keep order stable: text explanation first, then cards.
-  const texts = ctx.out.filter((m) => m.text);
-  const cards = ctx.out.filter((m) => !m.text);
-  const ordered = [...texts, ...cards].map((m, i) => ({ ...m, createdAt: Date.now() + i }));
-  for (const m of ordered) await pushChat(family.id, m);
-  return ordered;
+  // Cards were already written as the tools ran; only the closing text (or the fail-safe) is written here.
+  const tail: ChatMessage[] = [];
+  if (finalText) tail.push(msg({ text: finalText }));
+  if (!ctx.out.length && !tail.length) tail.push(...failSafeMessages());
+  for (const m of tail) await pushChat(family.id, m);
+  return [...ctx.out, ...tail];
 }
 
 /** Proactive greeting when the parent opens the app and has not chatted yet today. */

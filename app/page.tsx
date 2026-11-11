@@ -98,7 +98,7 @@ function Chat({ me }: { me: ElderId }) {
   const [canListen, setCanListen] = useState(false);
   const seen = useRef(new Set<string>());
   const loaded = useRef(false);
-  const since = useRef(0);
+  const cursor = useRef<number | null>(null);
   const voiceRef = useRef(true);
   const listRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -117,7 +117,6 @@ function Chat({ me }: { me: ElderId }) {
     const fresh = incoming.filter((m) => !seen.current.has(m.id));
     if (!fresh.length) return;
     fresh.forEach((m) => seen.current.add(m.id));
-    since.current = Math.max(since.current, ...fresh.map((m) => m.createdAt));
     setMessages((prev) => [...prev.filter((p) => !fresh.some((f) => f.id === p.id)), ...fresh].sort((a, b) => a.createdAt - b.createdAt));
     if (announce && voiceRef.current) {
       for (const m of fresh) if (m.role === "abao") speak(m.text ?? (m.card ? cardSpeech(m.card) : ""));
@@ -129,7 +128,7 @@ function Chat({ me }: { me: ElderId }) {
     let stop = false;
     async function poll() {
       try {
-        const res = await fetch(`/api/chat/history?familyId=${me.familyId}&since=${since.current}`, { cache: "no-store" });
+        const res = await fetch(`/api/chat/history?familyId=${me.familyId}${cursor.current === null ? "" : `&after=${cursor.current}`}`, { cache: "no-store" });
         if (res.status === 404) {
           localStorage.removeItem("abao.elder");
           location.reload();
@@ -138,6 +137,7 @@ function Chat({ me }: { me: ElderId }) {
         const data = await res.json();
         if (stop) return;
         setFamily(data.family);
+        cursor.current = data.next;
         merge(data.messages, loaded.current);
         if (!loaded.current) {
           loaded.current = true;
