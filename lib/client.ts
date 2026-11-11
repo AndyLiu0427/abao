@@ -79,10 +79,17 @@ export type PushState = "unsupported" | "needs-install" | "off" | "on" | "denied
 const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
 
+// Registers the worker itself if the page has not done so yet, so the button never waits forever.
+async function swReady() {
+  if (!(await navigator.serviceWorker.getRegistration())) await navigator.serviceWorker.register("/sw.js");
+  return navigator.serviceWorker.ready;
+}
+
 export async function pushState(): Promise<PushState> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return isIos() && !isStandalone() ? "needs-install" : "unsupported";
   if (Notification.permission === "denied") return "denied";
-  const reg = await navigator.serviceWorker.ready;
+  if (Notification.permission !== "granted") return "off";
+  const reg = await swReady();
   return (await reg.pushManager.getSubscription()) && Notification.permission === "granted" ? "on" : "off";
 }
 
@@ -90,7 +97,7 @@ export async function pushState(): Promise<PushState> {
 export async function enablePush(familyId: string, memberId: string): Promise<PushState> {
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return permission === "denied" ? "denied" : "off";
-  const reg = await navigator.serviceWorker.ready;
+  const reg = await swReady();
   const { publicKey } = await (await fetch("/api/push/key")).json();
   const raw = atob(publicKey.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(publicKey.length / 4) * 4, "="));
   const key = Uint8Array.from(raw, (c) => c.charCodeAt(0));

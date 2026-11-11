@@ -100,12 +100,7 @@ export default function FamilyClient() {
       </header>
 
       <div className="space-y-4 p-4">
-        {pending.length === 0 && (
-          <div className="enter rounded-3xl bg-white p-6 text-center shadow-sm">
-            <div className="text-5xl">🛡️</div>
-            <div className="mt-2 text-xl font-bold">目前沒有需要你確認的事</div>
-            <div className="mt-1 text-base text-stone-500">有人冒充你聯絡{elder}時，阿寶會馬上在這裡問你。</div>
-            <div className="mt-4">
+        <div className="text-center">
               {push === "on" ? (
                 <div className="inline-block rounded-full bg-green-100 px-4 py-2 text-base font-bold text-green-800">🔔 通知已開啟，手機鎖著也會收到</div>
               ) : push === "needs-install" ? (
@@ -119,11 +114,16 @@ export default function FamilyClient() {
                   🔔 開啟提示音（這個瀏覽器不支援系統通知）
                 </button>
               ) : (
-                <button onClick={turnOnPush} disabled={pushBusy || push === null} className="h-14 rounded-full bg-orange-500 px-6 text-xl font-extrabold text-white shadow disabled:opacity-60">
+                <button onClick={turnOnPush} disabled={pushBusy} className="h-14 rounded-full bg-orange-500 px-6 text-xl font-extrabold text-white shadow disabled:opacity-60">
                   {pushBusy ? "開啟中…" : "🔔 開啟通知"}
                 </button>
               )}
             </div>
+        {pending.length === 0 && (
+          <div className="enter rounded-3xl bg-white p-6 text-center shadow-sm">
+            <div className="text-5xl">🛡️</div>
+            <div className="mt-2 text-xl font-bold">目前沒有需要你確認的事</div>
+            <div className="mt-1 text-base text-stone-500">有人冒充你聯絡{elder}時，阿寶會馬上在這裡問你。</div>
           </div>
         )}
 
