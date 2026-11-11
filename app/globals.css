@@ -15,6 +15,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Installed on iPhone the page draws under the status bar: paint that strip orange so it reads as a native app. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: env(safe-area-inset-top);
+  background: #f97316;
+  z-index: 50;
+}
+
 /* Every pressable thing answers the finger right away. */
 button, a[href^="tel:"], a.press {
   touch-action: manipulation;

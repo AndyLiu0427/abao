@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { addMemory, getChat, getMemory, newId, pushChat, saveCheck } from "./store";
+import { notifyMember } from "./push";
 import type { Analysis, Card, ChatMessage, Check, Family } from "./types";
 
 const MODEL = process.env.ABAO_MODEL || "claude-fable-5-2";
@@ -159,6 +160,11 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): 
         : { type: "waiting", checkId: check.id, title: `正在問${member.name}本人…`, body: "回覆之前，先不要匯款。", en: `Asking the real ${member.name} now. Don't send money yet.` },
     );
     await saveCheck(check);
+    await notifyMember(ctx.family.id, member.id, {
+      title: headsUp ? `阿寶：${ctx.family.elderName}可能遇到詐騙` : `阿寶：這是你嗎？`,
+      body: check.question || `${ctx.family.elderName}收到一則可疑訊息，請幫忙確認。`,
+      url: `/family?f=${ctx.family.id}&m=${member.id}`,
+    });
     return `Question sent to ${member.name} (${member.relation}). The app will show their answer to the parent as soon as they tap.`;
   }
   if (name === "get_official_contact") {

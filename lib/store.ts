@@ -63,3 +63,24 @@ export async function listChecks(familyId: string): Promise<Check[]> {
 
 export const getMemory = (familyId: string) => list<string>(`memory:${familyId}`, -30, -1);
 export const addMemory = (familyId: string, fact: string) => push(`memory:${familyId}`, fact);
+
+// Web push: the VAPID key pair is generated once and kept in the store, so no secret lives in git or env.
+export async function getOrCreate<T>(key: string, make: () => T): Promise<T> {
+  const existing = await get<T>(key);
+  if (existing) return existing;
+  const value = make();
+  if (redis) {
+    await redis.set(key, value, { nx: true });
+    return (await redis.get<T>(key)) ?? value;
+  }
+  mem.set(key, value);
+  return value;
+}
+export type PushSub = { endpoint: string; keys: { p256dh: string; auth: string } };
+export async function addPushSub(familyId: string, memberId: string, sub: PushSub) {
+  const key = `push:${familyId}:${memberId}`;
+  const current = (await get<PushSub[]>(key)) ?? [];
+  await set(key, [...current.filter((s) => s.endpoint !== sub.endpoint), sub].slice(-5));
+}
+export const getPushSubs = async (familyId: string, memberId: string) => (await get<PushSub[]>(`push:${familyId}:${memberId}`)) ?? [];
+export const setPushSubs = (familyId: string, memberId: string, subs: PushSub[]) => set(`push:${familyId}:${memberId}`, subs);

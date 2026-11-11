@@ -73,3 +73,33 @@ export function beep() {
     navigator.vibrate?.([200, 100, 200]);
   } catch {}
 }
+
+export type PushState = "unsupported" | "needs-install" | "off" | "on" | "denied";
+const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
+
+export async function pushState(): Promise<PushState> {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return isIos() && !isStandalone() ? "needs-install" : "unsupported";
+  if (Notification.permission === "denied") return "denied";
+  const reg = await navigator.serviceWorker.ready;
+  return (await reg.pushManager.getSubscription()) && Notification.permission === "granted" ? "on" : "off";
+}
+
+/** Must be called from a tap: asks permission, subscribes this device, and registers it for the member. */
+export async function enablePush(familyId: string, memberId: string): Promise<PushState> {
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") return permission === "denied" ? "denied" : "off";
+  const reg = await navigator.serviceWorker.ready;
+  const { publicKey } = await (await fetch("/api/push/key")).json();
+  const raw = atob(publicKey.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(publicKey.length / 4) * 4, "="));
+  const key = Uint8Array.from(raw, (c) => c.charCodeAt(0));
+  const existing = await reg.pushManager.getSubscription();
+  const subscription = existing ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }));
+  const res = await fetch("/api/push/subscribe", { method: "POST", body: JSON.stringify({ familyId, memberId, subscription: subscription.toJSON() }) });
+  return res.ok ? "on" : "off";
+}
+export function clearBadge() {
+  try {
+    (navigator as unknown as { clearAppBadge?: () => Promise<void> }).clearAppBadge?.().catch(() => {});
+  } catch {}
+}
