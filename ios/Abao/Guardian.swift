@@ -160,11 +160,12 @@ final class Guardian: NSObject, ObservableObject, WKUIDelegate {
 
     private func finish(key: String, state: AbaoAttributes.ContentState) async {
         finished.insert(key)
-        if let activity {
-            await activity.end(.init(state: state, staleDate: nil), dismissalPolicy: .after(.now + 15))
-        }
-        activity = nil
+        guard let activity else { return }
+        self.activity = nil
         activityKey = ""
+        // Ending removes it from the Dynamic Island, so let the answer stay there for a moment first.
+        try? await Task.sleep(for: .seconds(30))
+        await activity.end(.init(state: state, staleDate: nil), dismissalPolicy: .after(.now + 15))
     }
 
     private func notify(id: String, title: String, body: String) {
