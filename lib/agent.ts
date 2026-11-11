@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { addMemory, getChat, getMemory, newId, pushChat, saveCheck } from "./store";
+import { addMemory, getChat, getCheck, getMemory, newId, pushChat, saveCheck } from "./store";
 import { notifyMember } from "./push";
 import type { Analysis, Card, ChatMessage, Check, Family } from "./types";
 
@@ -94,7 +94,7 @@ When it only comes up vaguely in conversation (a new friend, a teacher, an oppor
 
 Be transparent: always tell them you are going to check with family, and that they should not send money or reply until family answers. Never shame them; being targeted is not their fault. Never tell them to call a phone number, open a link, or add a LINE ID that appears inside a suspicious message.
 
-How to write: Traditional Chinese as used in Taiwan, short plain sentences a 70-year-old can follow when read aloud, one to three short lines, no markdown, no lists, no English. The app shows your verdict, red flags and phone numbers as cards, so do not repeat them; say what you are doing and the one thing they should do now.`;
+How to write: Traditional Chinese as used in Taiwan, short plain sentences a 70-year-old can follow when read aloud, one to three short lines, no markdown, no lists, no English. The app shows your verdict, red flags and phone numbers as cards, so do not repeat them; say what you are doing and the one thing they should do now. Only refer to a phone number "on the card" in a turn where you called get_official_contact; otherwise, if you mention 165 at all, just say they can call 165.`;
 }
 
 type Ctx = { family: Family; thumb?: string; out: ChatMessage[]; checks: Map<string, Check> };
@@ -273,7 +273,11 @@ export async function runAgent(opts: {
 
   // Cards were already written as the tools ran; only the closing text (or the fail-safe) is written here.
   const tail: ChatMessage[] = [];
-  if (finalText) tail.push(msg({ text: finalText }));
+  // If the family member already answered while this turn was finishing, their result card is the last word:
+  // a late "I have asked your son" underneath it would contradict it.
+  const asked = [...ctx.checks.values()].filter((c) => c.askedMemberId);
+  const answered = (await Promise.all(asked.map((c) => getCheck(c.id)))).some((c) => c && c.status !== "waiting");
+  if (finalText && !answered) tail.push(msg({ text: finalText }));
   if (!ctx.out.length && !tail.length) tail.push(...failSafeMessages());
   for (const m of tail) await pushChat(family.id, m);
   return [...ctx.out, ...tail];
