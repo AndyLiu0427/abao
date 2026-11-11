@@ -23,6 +23,7 @@ export default function Home() {
   const [familyMe, setFamilyMe] = useState<FamilyId | null>(null);
   const [ready, setReady] = useState(false);
   const [en, setEn] = useState(false);
+  const [firstRun, setFirstRun] = useState(false);
 
   useEffect(() => {
     // /?f=<familyId>&n=<name> opens a specific family without touching saved identity (used by /demo).
@@ -35,8 +36,8 @@ export default function Home() {
   }, []);
 
   if (!ready) return null;
-  if (!me) return <Onboarding familyMe={familyMe} onDone={setMe} en={en} />;
-  return <Chat me={me} langEn={en} />;
+  if (!me) return <Onboarding familyMe={familyMe} onDone={(id) => { setFirstRun(true); setMe(id); }} en={en} />;
+  return <Chat me={me} langEn={en} firstRun={firstRun} />;
 }
 
 function Onboarding({ familyMe, onDone, en }: { familyMe: FamilyId | null; onDone: (e: ElderId) => void; en: boolean }) {
@@ -94,13 +95,14 @@ function Onboarding({ familyMe, onDone, en }: { familyMe: FamilyId | null; onDon
   );
 }
 
-function Chat({ me, langEn }: { me: ElderId; langEn: boolean }) {
+function Chat({ me, langEn, firstRun = false }: { me: ElderId; langEn: boolean; firstRun?: boolean }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [family, setFamily] = useState<Family | null>(null);
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState("");
   const [voiceOn, setVoiceOn] = useState(true);
-  const [showInvite, setShowInvite] = useState(false);
+  // Right after onboarding, open the invite sheet so the first step is adding a family member.
+  const [showInvite, setShowInvite] = useState(firstRun);
   const [listening, setListening] = useState(false);
   const [canListen, setCanListen] = useState(false);
   const seen = useRef(new Set<string>());
@@ -343,7 +345,7 @@ function Chat({ me, langEn }: { me: ElderId; langEn: boolean }) {
         </div>
       </footer>
 
-      {showInvite && <Invite familyId={me.familyId} elderName={me.name} en={en} onClose={() => setShowInvite(false)} />}
+      {showInvite && <Invite familyId={me.familyId} elderName={me.name} en={en} firstRun={firstRun} onClose={() => setShowInvite(false)} />}
     </main>
   );
 }
@@ -356,7 +358,7 @@ function Bubble({ role, children }: { role: "user" | "abao"; children: React.Rea
   );
 }
 
-function Invite({ familyId, elderName, en, onClose }: { familyId: string; elderName: string; en: boolean; onClose: () => void }) {
+function Invite({ familyId, elderName, en, firstRun = false, onClose }: { familyId: string; elderName: string; en: boolean; firstRun?: boolean; onClose: () => void }) {
   const t = (zh: string, e: string) => (en ? e : zh);
   const [copied, setCopied] = useState(false);
   const link = `${location.origin}/join/${familyId}`;
@@ -375,7 +377,7 @@ function Invite({ familyId, elderName, en, onClose }: { familyId: string; elderN
   return (
     <div className="backdrop fixed inset-0 z-10 flex items-end justify-center bg-black/50" onClick={onClose}>
       <div className="sheet w-full max-w-md space-y-4 rounded-t-3xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center" onClick={(e) => e.stopPropagation()}>
-        <h2 className="title text-2xl font-extrabold">{t("邀請家人", "Invite family")}</h2>
+        <h2 className="title text-2xl font-extrabold">{firstRun ? t("第一步：邀請一位家人", "First step: invite a family member") : t("邀請家人", "Invite family")}</h2>
         <p className="text-lg text-stone-600">{t("按下面的綠色按鈕，選一位家人傳給他就好。以後有人冒充他，阿寶會直接問他本人。", "Have them scan this code, or send them the link. If anyone ever pretends to be them, Abao asks the real person.")}</p>
         <div className="flex justify-center">
           <QRCodeSVG value={link} size={en ? 190 : 130} />
