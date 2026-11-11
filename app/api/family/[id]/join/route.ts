@@ -6,6 +6,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const family = await getFamily(id);
   if (!family) return Response.json({ error: "not_found" }, { status: 404 });
   const { name, relation, phone } = await req.json();
+  // Joining again with the same name and relation (a second scan, or the installed app) is the same person.
+  const again = family.members.find((m) => m.name === String(name || "家人").slice(0, 20) && m.relation === String(relation || "family").slice(0, 20));
+  if (again) return Response.json({ family, member: again });
   const member: Member = {
     id: newId(6),
     name: String(name || "家人").slice(0, 20),

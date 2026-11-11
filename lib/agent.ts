@@ -156,6 +156,8 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): 
     const member = members.find((m) => m.id === input.member_id) ?? members.find((m) => m.name === input.member_id) ?? members[0];
     const check = ctx.checks.get(String(input.check_id)) ?? [...ctx.checks.values()].pop();
     if (!check) return "Unknown check_id. Call record_check first.";
+    // One question per check: asking again would wipe an answer that may already have arrived.
+    if (check.askedMemberId) return `Already asked ${check.askedName} about this. Their answer will appear in the app; do not ask again.`;
     check.status = "waiting";
     check.askedMemberId = member.id;
     check.askedName = member.name;
