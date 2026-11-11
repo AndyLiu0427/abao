@@ -100,7 +100,7 @@ function Chat({ me }: { me: ElderId }) {
   const loaded = useRef(false);
   const since = useRef(0);
   const voiceRef = useRef(true);
-  const bottom = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<SR | null>(null);
 
@@ -158,7 +158,8 @@ function Chat({ me }: { me: ElderId }) {
   }, [me.familyId, merge]);
 
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll the list itself (scrollIntoView would also scroll parent frames).
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, busy]);
 
   async function send(payload: { text?: string; imageBase64?: string; thumb?: string }) {
@@ -255,7 +256,7 @@ function Chat({ me }: { me: ElderId }) {
         </div>
       </header>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-3">
+      <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto p-3">
         {members.length === 0 && (
           <button onClick={() => setShowInvite(true)} className="w-full rounded-3xl border-2 border-dashed border-orange-400 bg-white p-4 text-left text-xl font-bold text-orange-700">
             👨‍👩‍👧 先邀請一位家人，阿寶才能幫您問本人 →
@@ -292,7 +293,6 @@ function Chat({ me }: { me: ElderId }) {
             </span>
           </Bubble>
         )}
-        <div ref={bottom} />
       </div>
 
       <footer className="space-y-2 border-t border-orange-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

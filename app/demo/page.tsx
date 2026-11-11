@@ -24,7 +24,7 @@ export default function Demo() {
 
   const W = 390;
   const H = 780;
-  const S = 0.82;
+  const S = 0.8;
   const phone = (id: string, src: string, zh: string, en: string) => (
     <div className="flex flex-col items-center gap-2">
       <div className="text-center leading-tight">
