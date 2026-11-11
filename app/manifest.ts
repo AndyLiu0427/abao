@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "阿寶 Abao",
     short_name: "阿寶",
     description: "A personal AI agent for your parents. It checks with family before money moves.",
-    start_url: "/",
+    // No start_url: an installed app opens on the page it was added from, which keeps a family member on their own page.
     display: "standalone",
     orientation: "portrait",
     background_color: "#fff7ed",

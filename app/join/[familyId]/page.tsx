@@ -1,5 +1,5 @@
 "use client";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { save } from "@/lib/client";
 import type { Family } from "@/lib/types";
@@ -8,7 +8,6 @@ const RELATIONS = ["兒子", "女兒", "孫子", "孫女", "先生／太太", "�
 
 export default function Join() {
   const { familyId } = useParams<{ familyId: string }>();
-  const router = useRouter();
   const [family, setFamily] = useState<Family | null>(null);
   const [missing, setMissing] = useState(false);
   const [name, setName] = useState("");
@@ -30,7 +29,8 @@ export default function Join() {
       const res = await fetch(`/api/family/${familyId}/join`, { method: "POST", body: JSON.stringify({ name: name.trim(), relation, phone }) });
       const { member } = await res.json();
       save("abao.family", { familyId, memberId: member.id, name: member.name });
-      router.push(`/family?f=${familyId}&m=${member.id}`);
+      // Full page load (not a client transition) so the page carries its own install manifest for "Add to Home Screen".
+      location.href = `/family?f=${familyId}&m=${member.id}`;
     } finally {
       setBusy(false);
     }

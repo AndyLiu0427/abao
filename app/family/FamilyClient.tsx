@@ -43,6 +43,15 @@ export default function FamilyClient() {
     if (familyId && memberId) {
       setMe({ familyId, memberId });
       // Keep identity in the URL so installing to the home screen keeps it.
+      // Make sure "Add to Home Screen" installs this member's page even if we got here by a client transition.
+      const href = `/api/manifest?f=${familyId}&m=${memberId}`;
+      let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "manifest";
+        document.head.appendChild(link);
+      }
+      if (!link.getAttribute("href")?.startsWith("/api/manifest")) link.href = href;
       if (!q.get("f")) window.history.replaceState(null, "", `/family?f=${familyId}&m=${memberId}`);
     } else setNone(true);
   }, []);
