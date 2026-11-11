@@ -376,13 +376,18 @@ function Invite({ familyId, elderName, en, onClose }: { familyId: string; elderN
     <div className="backdrop fixed inset-0 z-10 flex items-end justify-center bg-black/50" onClick={onClose}>
       <div className="sheet w-full max-w-md space-y-4 rounded-t-3xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center" onClick={(e) => e.stopPropagation()}>
         <h2 className="title text-2xl font-extrabold">{t("邀請家人", "Invite family")}</h2>
-        <p className="text-lg text-stone-600">{t("請家人掃這個碼，或把連結傳給他。以後有人冒充他，阿寶會直接問他本人。", "Have them scan this code, or send them the link. If anyone ever pretends to be them, Abao asks the real person.")}</p>
+        <p className="text-lg text-stone-600">{t("按下面的綠色按鈕，選一位家人傳給他就好。以後有人冒充他，阿寶會直接問他本人。", "Have them scan this code, or send them the link. If anyone ever pretends to be them, Abao asks the real person.")}</p>
         <div className="flex justify-center">
-          <QRCodeSVG value={link} size={190} />
+          <QRCodeSVG value={link} size={en ? 190 : 130} />
         </div>
         <div className="break-all rounded-xl bg-stone-100 p-2 text-sm text-stone-600">{link}</div>
-        <button onClick={share} className="h-16 w-full rounded-2xl bg-orange-500 text-2xl font-extrabold text-white">
-          {copied ? t("已複製連結 ✓", "Link copied ✓") : t("傳給家人", "Send to family")}
+        {!en && (
+          <a href={`https://line.me/R/share?text=${encodeURIComponent(`${shareText}\n${link}`)}`} target="_blank" rel="noreferrer" className="flex h-16 w-full items-center justify-center rounded-2xl bg-[#06C755] text-2xl font-extrabold text-white">
+            用 LINE 傳給家人
+          </a>
+        )}
+        <button onClick={share} className={`h-16 w-full rounded-2xl text-2xl font-extrabold ${en ? "bg-orange-500 text-white" : "bg-orange-100 text-orange-700"}`}>
+          {copied ? t("已複製連結 ✓", "Link copied ✓") : t("用其他方式傳", "Send to family")}
         </button>
         <button onClick={onClose} className="h-12 w-full text-xl text-stone-500">
           {t("關閉", "Close")}
