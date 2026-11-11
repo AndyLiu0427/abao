@@ -6,6 +6,7 @@ import type { ChatMessage } from "@/lib/types";
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const { answer } = await req.json();
+  if (!["me", "not_me", "will_call"].includes(answer)) return Response.json({ error: "bad_answer" }, { status: 400 });
   const check = await getCheck(id);
   if (!check) return Response.json({ error: "not_found" }, { status: 404 });
   if (check.status !== "waiting") return Response.json(check);

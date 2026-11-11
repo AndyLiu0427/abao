@@ -18,8 +18,9 @@ export function save(key: string, value: unknown) {
 
 export function speak(text: string) {
   try {
-    if (!("speechSynthesis" in window) || !text) return;
-    const u = new SpeechSynthesisUtterance(text);
+    if (!("speechSynthesis" in window) || typeof text !== "string") return;
+    // An empty call (from a tap) still speaks a blank utterance: that is what unlocks speech on iOS.
+    const u = new SpeechSynthesisUtterance(text || " ");
     u.lang = "zh-TW";
     u.rate = 0.95;
     const voice = speechSynthesis.getVoices().find((v) => v.lang.replace("_", "-").startsWith("zh-TW"));

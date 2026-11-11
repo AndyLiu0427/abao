@@ -127,7 +127,17 @@ export const officialCard = (title = "請自己撥打官方電話", body = "不�
 
 async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): Promise<string> {
   if (name === "record_check") {
-    const a = input as unknown as Analysis;
+    // Model output is normalised before it is stored, so a malformed field can never break rendering.
+    const raw = input as Record<string, unknown>;
+    const str = (v: unknown, d = "") => (typeof v === "string" ? v : d);
+    const a = {
+      ...raw,
+      risk: ["low", "medium", "high"].includes(raw.risk as string) ? raw.risk : "high",
+      verdict_zh: str(raw.verdict_zh, "請先不要匯款，等阿寶確認"),
+      verdict_en: str(raw.verdict_en),
+      message_summary: str(raw.message_summary),
+      red_flags: Array.isArray(raw.red_flags) ? raw.red_flags.filter((x) => typeof x === "string") : typeof raw.red_flags === "string" ? [raw.red_flags] : [],
+    } as unknown as Analysis;
     const check: Check = { id: newId(), familyId: ctx.family.id, createdAt: Date.now(), analysis: a, thumb: ctx.thumb, status: "done" };
     await saveCheck(check, true);
     ctx.checks.set(check.id, check);
@@ -227,7 +237,7 @@ export async function runAgent(opts: {
   content.push({ type: "text", text: userMessage.text || "這是我收到的訊息，請幫我看看。" });
 
   const messages: Anthropic.Beta.BetaMessageParam[] = [...historyToMessages(history.filter((m) => m.id !== userMessage.id)), { role: "user", content }];
-  const client = new Anthropic();
+  const client = new Anthropic({ timeout: 25_000, maxRetries: 1 });
   let finalText = "";
 
   try {
@@ -270,7 +280,7 @@ export async function runAgent(opts: {
 }
 
 /** Proactive greeting when the parent opens the app and has not chatted yet today. */
-export async function greet(family: Family): Promise<ChatMessage> {
+export async function greet(family: Family): Promise<ChatMessage | null> {
   const fallback = `${family.elderName}好，我是阿寶。今天過得怎麼樣？收到奇怪的訊息，也可以拍給我看喔。`;
   let text = fallback;
   if (!process.env.MOCK_AI) {
@@ -278,7 +288,7 @@ export async function greet(family: Family): Promise<ChatMessage> {
       const [history, memory] = await Promise.all([getChat(family.id), getMemory(family.id)]);
       const hour = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "Asia/Taipei" }).format(new Date()));
       const first = history.length === 0;
-      const res = await callModel(new Anthropic(), {
+      const res = await callModel(new Anthropic({ timeout: 25_000, maxRetries: 1 }), {
         system: systemPrompt(family, memory),
         messages: [
           ...historyToMessages(history),
@@ -295,6 +305,8 @@ export async function greet(family: Family): Promise<ChatMessage> {
     }
   }
   const m = msg({ text });
+  // If the parent already wrote while the greeting was being composed, drop it instead of landing mid-conversation.
+  if ((await getChat(family.id)).some((x) => x.role === "user")) return null;
   await pushChat(family.id, m);
   return m;
 }
