@@ -40,11 +40,11 @@ export default function Join() {
   if (!family) return null;
 
   return (
-    <main className="mx-auto flex min-h-full max-w-md flex-col justify-center gap-5 p-6">
+    <main className="stagger mx-auto flex min-h-full max-w-md flex-col justify-center gap-5 p-6">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/icon-192.png" alt="阿寶" className="mx-auto h-24 w-24 rounded-3xl shadow-lg" />
       <div className="text-center">
-        <h1 className="text-3xl font-extrabold">{family.elderName}邀請你當家人</h1>
+        <h1 className="title text-3xl font-extrabold">{family.elderName}邀請你當家人</h1>
         <p className="mt-2 text-lg text-stone-600">有人冒充你向{family.elderName}要錢時，阿寶會直接問你「是你嗎？」，你按一下就好。</p>
         <p className="mt-1 text-sm text-stone-400">Abao will ask you directly when someone pretends to be you.</p>
       </div>

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { type FamilyId, beep, load } from "@/lib/client";
 import type { Check, Family } from "@/lib/types";
 
+const clean = (t: string) => t.replace(/^[「『"“\s]+|[」』"”\s]+$/g, "");
 const STATUS: Record<string, string> = { done: "阿寶已提醒", waiting: "正在問其他家人", confirmed_me: "✅ 確認是本人", confirmed_not_me: "🚫 不是本人，已擋下", family_calling: "📞 家人已打電話關心" };
 
 export default function FamilyPage() {
@@ -66,7 +67,7 @@ export default function FamilyPage() {
     <main className="mx-auto min-h-full max-w-md bg-orange-50">
       <header className="flex items-center gap-3 bg-orange-500 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-white shadow">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icon-192.png" alt="" className="h-11 w-11 rounded-xl border-2 border-white/60" />
+        <img src="/icon-192.png" alt="" className="h-11 w-11 shrink-0 rounded-xl border-2 border-white/60" />
         <div className="leading-tight">
           <div className="text-2xl font-extrabold">阿寶通知</div>
           <div className="text-sm opacity-90">
@@ -77,7 +78,7 @@ export default function FamilyPage() {
 
       <div className="space-y-4 p-4">
         {pending.length === 0 && (
-          <div className="rounded-3xl bg-white p-6 text-center shadow-sm">
+          <div className="enter rounded-3xl bg-white p-6 text-center shadow-sm">
             <div className="text-5xl">🛡️</div>
             <div className="mt-2 text-xl font-bold">目前沒有需要你確認的事</div>
             <div className="mt-1 text-base text-stone-500">有人冒充你聯絡{elder}時，阿寶會馬上在這裡問你。</div>
@@ -90,25 +91,25 @@ export default function FamilyPage() {
         {pending.map((c) => (
           <div key={c.id} className="alarm rounded-3xl border-2 border-red-500 bg-white p-5 shadow-lg">
             <div className="text-sm font-bold text-red-600">阿寶需要你確認 · Abao needs you</div>
-            <div className="mt-1 text-2xl font-extrabold leading-snug">{c.question || `${elder}收到自稱是你的訊息，是你嗎？`}</div>
+            <div className="title mt-1 text-2xl font-extrabold leading-snug">{c.question || `${elder}收到自稱是你的訊息，是你嗎？`}</div>
             <div className="mt-3 rounded-2xl bg-stone-100 p-3 text-lg text-stone-800">
               {c.thumb && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={c.thumb} alt="截圖" className="mb-2 max-h-56 rounded-xl" />
               )}
-              「{c.analysis.message_summary}」
-              {c.analysis.amount_twd ? <div className="mt-1 font-bold text-red-600">要求金額：NT${c.analysis.amount_twd.toLocaleString()}</div> : null}
+              「{clean(c.analysis.message_summary)}」
+              {c.analysis.amount_twd ? <div className="nums mt-1 font-bold text-red-600">要求金額：NT${c.analysis.amount_twd.toLocaleString()}</div> : null}
             </div>
             {c.askKind === "heads_up" ? (
-              <button disabled={answering === c.id} onClick={() => respond(c.id, "will_call")} className="mt-4 h-20 w-full rounded-2xl bg-orange-500 text-2xl font-extrabold text-white active:scale-95 disabled:opacity-50">
+              <button disabled={answering === c.id} onClick={() => respond(c.id, "will_call")} className="mt-4 h-20 w-full rounded-2xl bg-orange-500 text-2xl font-extrabold text-white disabled:opacity-50">
                 📞 我現在打給{elder}
               </button>
             ) : (
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <button disabled={answering === c.id} onClick={() => respond(c.id, "me")} className="h-20 rounded-2xl bg-green-600 text-2xl font-extrabold text-white active:scale-95 disabled:opacity-50">
+                <button disabled={answering === c.id} onClick={() => respond(c.id, "me")} className="h-20 rounded-2xl bg-green-600 text-2xl font-extrabold text-white disabled:opacity-50">
                   ✅ 是我
                 </button>
-                <button disabled={answering === c.id} onClick={() => respond(c.id, "not_me")} className="h-20 rounded-2xl bg-red-600 text-2xl font-extrabold text-white active:scale-95 disabled:opacity-50">
+                <button disabled={answering === c.id} onClick={() => respond(c.id, "not_me")} className="h-20 rounded-2xl bg-red-600 text-2xl font-extrabold text-white disabled:opacity-50">
                   ❌ 不是我
                 </button>
               </div>
@@ -121,13 +122,13 @@ export default function FamilyPage() {
             <h2 className="mb-2 mt-4 text-lg font-bold text-stone-600">{elder}最近給阿寶看過的</h2>
             <div className="space-y-2">
               {history.map((c) => (
-                <div key={c.id} className="rounded-2xl bg-white p-3 shadow-sm">
-                  <div className="flex items-center justify-between text-sm text-stone-500">
+                <div key={c.id} className="enter rounded-2xl bg-white p-3 shadow-sm">
+                  <div className="nums flex items-center justify-between text-sm text-stone-500">
                     <span>{new Date(c.createdAt).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                     <span className="font-bold">{STATUS[c.status]}</span>
                   </div>
                   <div className={`mt-1 text-lg font-bold ${c.analysis.risk === "low" ? "text-green-700" : "text-red-600"}`}>{c.analysis.verdict_zh}</div>
-                  <div className="text-base text-stone-600">「{c.analysis.message_summary}」</div>
+                  <div className="text-base text-stone-600">「{clean(c.analysis.message_summary)}」</div>
                 </div>
               ))}
             </div>

@@ -1,6 +1,6 @@
 import type { Card } from "@/lib/types";
 
-const callBtn = "flex min-h-14 items-center justify-center rounded-2xl px-4 text-xl font-bold active:scale-95 transition";
+const callBtn = "flex min-h-14 items-center justify-center rounded-2xl px-4 text-xl font-bold";
 
 export function cardSpeech(card: Card) {
   return [card.title, card.body].filter(Boolean).join("。");
@@ -9,8 +9,8 @@ export function cardSpeech(card: Card) {
 export default function CardView({ card, done }: { card: Card; done?: boolean }) {
   if (card.type === "warning")
     return (
-      <div className={`${card.call165 ? "alarm" : "pop"} rounded-3xl bg-red-600 p-5 text-white shadow-lg`}>
-        <div className="text-[26px] font-extrabold leading-snug">⚠️ {card.title}</div>
+      <div className={`${card.call165 ? "alarm pop" : "pop"} rounded-3xl bg-red-600 p-5 text-white shadow-lg`}>
+        <div className="title text-[26px] font-extrabold leading-snug">⚠️ {card.title}</div>
         {card.body && <div className="mt-2 text-xl leading-relaxed">{card.body}</div>}
         {card.flags && card.flags.length > 0 && (
           <ul className="mt-3 space-y-1 text-xl">
@@ -30,7 +30,7 @@ export default function CardView({ card, done }: { card: Card; done?: boolean })
   if (card.type === "safe")
     return (
       <div className="pop rounded-3xl bg-green-600 p-5 text-white shadow-lg">
-        <div className="text-[26px] font-extrabold leading-snug">✅ {card.title}</div>
+        <div className="title text-[26px] font-extrabold leading-snug">✅ {card.title}</div>
         {card.body && <div className="mt-2 text-xl">{card.body}</div>}
         {card.en && <div className="mt-3 text-sm opacity-80">{card.en}</div>}
       </div>
@@ -39,7 +39,7 @@ export default function CardView({ card, done }: { card: Card; done?: boolean })
     return (
       <div className={`pop rounded-3xl border-2 border-amber-400 bg-amber-100 p-5 text-amber-950 shadow ${done ? "opacity-60" : ""}`}>
         <div className="flex items-center gap-3 text-2xl font-extrabold">
-          {done ? <span>✔️</span> : <span className="inline-block h-7 w-7 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />}
+          {done ? <span>✔️</span> : <span className="inline-block h-7 w-7 spinner rounded-full border-4 border-amber-500 border-t-transparent" />}
           {done ? card.title.replace("正在", "已").replace("…", "") : card.title}
         </div>
         {card.body && <div className="mt-2 text-xl">{card.body}</div>}

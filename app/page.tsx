@@ -55,11 +55,11 @@ function Onboarding({ familyMe, onDone }: { familyMe: FamilyId | null; onDone: (
   }
 
   return (
-    <main className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center gap-6 p-6 text-center">
+    <main className="stagger mx-auto flex min-h-full max-w-md flex-col items-center justify-center gap-6 p-6 text-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/icon-192.png" alt="阿寶" className="h-28 w-28 rounded-[28px] shadow-lg" />
       <div>
-        <h1 className="text-4xl font-extrabold">阿寶 Abao</h1>
+        <h1 className="title text-4xl font-extrabold">阿寶 Abao</h1>
         <p className="mt-3 text-xl leading-relaxed text-stone-700">
           收到奇怪的訊息，先給阿寶看。
           <br />
@@ -70,7 +70,7 @@ function Onboarding({ familyMe, onDone }: { familyMe: FamilyId | null; onDone: (
       <div className="w-full space-y-3">
         <label className="block text-left text-xl font-bold">家人都怎麼叫您？</label>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：媽媽、阿嬤、爸爸" className="h-16 w-full rounded-2xl border-2 border-orange-300 bg-white px-4 text-2xl outline-none focus:border-orange-500" />
-        <button onClick={start} disabled={busy} className="h-16 w-full rounded-2xl bg-orange-500 text-2xl font-extrabold text-white shadow-lg active:scale-95 disabled:opacity-60">
+        <button onClick={start} disabled={busy} className="h-16 w-full rounded-2xl bg-orange-500 text-2xl font-extrabold text-white shadow-lg disabled:opacity-60">
           {busy ? "準備中…" : "開始使用阿寶"}
         </button>
         {err && <p className="text-lg text-red-600">{err}</p>}
@@ -236,21 +236,21 @@ function Chat({ me }: { me: ElderId }) {
     <main className="mx-auto flex h-dvh max-w-md flex-col bg-orange-50">
       <header className="flex items-center gap-2 bg-orange-500 px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-white shadow">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icon-192.png" alt="" className="h-11 w-11 rounded-xl border-2 border-white/60" />
+        <img src="/icon-192.png" alt="" className="h-11 w-11 shrink-0 rounded-xl border-2 border-white/60" />
         <div className="mr-auto leading-tight">
           <div className="text-2xl font-extrabold">阿寶</div>
           <div className="text-xs opacity-90">{me.name}的守護小幫手</div>
         </div>
         <div className="flex items-center gap-1.5">
           {members.slice(0, 3).map((m) => (
-            <a key={m.id} href={m.phone ? `tel:${m.phone}` : undefined} title={m.name} className="flex h-11 min-w-11 items-center justify-center rounded-full bg-white px-2 text-base font-bold text-orange-700">
+            <a key={m.id} href={m.phone ? `tel:${m.phone}` : undefined} title={m.name} className="press flex h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white px-2 text-base font-bold text-orange-700">
               {m.name.slice(0, 2)}
             </a>
           ))}
-          <button onClick={() => setShowInvite(true)} className="h-11 rounded-full bg-orange-700 px-3 text-base font-bold">
+          <button onClick={() => setShowInvite(true)} className="h-11 shrink-0 whitespace-nowrap rounded-full bg-orange-700 px-3 text-base font-bold">
             ＋家人
           </button>
-          <button onClick={toggleVoice} aria-label="語音開關" className="h-11 w-11 rounded-full bg-orange-600 text-xl">
+          <button onClick={toggleVoice} aria-label="語音開關" className="h-11 w-11 shrink-0 rounded-full bg-orange-600 text-xl">
             {voiceOn ? "🔊" : "🔇"}
           </button>
         </div>
@@ -276,10 +276,10 @@ function Chat({ me }: { me: ElderId }) {
           ),
         )}
         {messages.filter((m) => m.role === "user").length === 0 && (
-          <div className="space-y-2 pt-1">
+          <div className="stagger space-y-2 pt-1">
             <div className="text-base text-stone-500">試試看 Try an example：</div>
             {SAMPLES.map((s) => (
-              <button key={s.label} onClick={() => send({ text: s.text })} className="block w-full rounded-2xl bg-white p-3 text-left text-xl shadow-sm active:scale-[0.98]">
+              <button key={s.label} onClick={() => send({ text: s.text })} className="block w-full rounded-2xl bg-white p-3 text-left text-xl shadow-sm">
                 {s.label}
               </button>
             ))}
@@ -287,8 +287,12 @@ function Chat({ me }: { me: ElderId }) {
         )}
         {busy && (
           <Bubble role="abao">
-            <span className="inline-flex items-center gap-2 text-stone-500">
-              <span className="inline-block h-5 w-5 animate-spin rounded-full border-4 border-orange-400 border-t-transparent" />
+            <span className="inline-flex items-center gap-3 text-stone-500">
+              <span className="dots" aria-hidden>
+                <i />
+                <i />
+                <i />
+              </span>
               阿寶正在看…
             </span>
           </Bubble>
@@ -310,11 +314,11 @@ function Chat({ me }: { me: ElderId }) {
         </div>
         <div className="flex gap-2">
           <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
-          <button onClick={() => fileRef.current?.click()} disabled={busy} className="h-16 flex-1 rounded-2xl bg-orange-500 text-2xl font-extrabold text-white shadow active:scale-95 disabled:opacity-50">
+          <button onClick={() => fileRef.current?.click()} disabled={busy} className="h-16 flex-1 rounded-2xl bg-orange-500 text-2xl font-extrabold text-white shadow disabled:opacity-50">
             📷 拍照／截圖
           </button>
           {canListen && (
-            <button onClick={toggleListen} disabled={busy} className={`h-16 flex-1 rounded-2xl text-2xl font-extrabold shadow active:scale-95 disabled:opacity-50 ${listening ? "bg-red-600 text-white" : "bg-stone-800 text-white"}`}>
+            <button onClick={toggleListen} disabled={busy} className={`h-16 flex-1 rounded-2xl text-2xl font-extrabold shadow disabled:opacity-50 ${listening ? "bg-red-600 text-white" : "bg-stone-800 text-white"}`}>
               {listening ? "● 我在聽…" : "🎤 用說的"}
             </button>
           )}
@@ -328,7 +332,7 @@ function Chat({ me }: { me: ElderId }) {
 
 function Bubble({ role, children }: { role: "user" | "abao"; children: React.ReactNode }) {
   return (
-    <div className={`flex ${role === "user" ? "justify-end" : "justify-start"}`}>
+    <div className={`enter flex ${role === "user" ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-[22px] leading-relaxed shadow-sm ${role === "user" ? "rounded-br-md bg-orange-500 text-white" : "rounded-bl-md bg-white"}`}>{children}</div>
     </div>
   );
@@ -350,9 +354,9 @@ function Invite({ familyId, elderName, onClose }: { familyId: string; elderName:
   }
 
   return (
-    <div className="fixed inset-0 z-10 flex items-end justify-center bg-black/50" onClick={onClose}>
-      <div className="w-full max-w-md space-y-4 rounded-t-3xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-2xl font-extrabold">邀請家人</h2>
+    <div className="backdrop fixed inset-0 z-10 flex items-end justify-center bg-black/50" onClick={onClose}>
+      <div className="sheet w-full max-w-md space-y-4 rounded-t-3xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center" onClick={(e) => e.stopPropagation()}>
+        <h2 className="title text-2xl font-extrabold">邀請家人</h2>
         <p className="text-lg text-stone-600">請家人掃這個碼，或把連結傳給他。以後有人冒充他，阿寶會直接問他本人。</p>
         <div className="flex justify-center">
           <QRCodeSVG value={link} size={190} />
