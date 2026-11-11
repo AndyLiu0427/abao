@@ -6,7 +6,7 @@ Abao is a personal AI companion for your parents. It chats with them every day, 
 
 Built at c0mpiled-18 Taipei (YC RFS: AI for the Aging Population).
 
-**Live:** _add your deployed URL here_
+**Live:** https://abao.vercel.app
 
 ## The insight
 
